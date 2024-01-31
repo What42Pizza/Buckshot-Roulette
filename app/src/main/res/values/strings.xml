@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">Buckshot Roulette</string>
+    <string name="how_many_players">How many players?</string>
+    <string name="go">Go</string>
+    <string name="enable_passwords">Enable Passwords</string>
+    <string name="name">Name:</string>
+    <string name="password">Password:</string>
+    <string name="leave_empty_for_no_password">(empty means no password)</string>
+    <string name="error_could_not_parse_input">Error: could not parse input</string>
+    <string name="error_player_count_must_be_at_least_2">Error: player count must be at least 2</string>
+    <string name="error_player_name_cannot_be_empty">Error: Player name cannot be empty</string>
+    <string name="error_player_name_is_already_in_use">Error: Player name is already in use</string>
+    <string name="next">Next</string>
+    <string name="start">Start</string>
+    <string name="list_of_new_items">List of new items</string>
+    <string name="password_input">password input</string>
+    <string name="error_password_is_incorrect">Error: password is incorrect</string>
+    <string name="items">Items</string>
+    <string name="players">Players</string>
+    <string name="trade">Trade</string>
+    <string name="shoot">Shoot</string>
+    <string name="players_colon">Players:</string>
+    <string name="back">Back</string>
+    <string name="use">Use</string>
+</resources>

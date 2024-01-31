@@ -1,0 +1,624 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:textAlignment="center"
+    tools:context=".MainActivity">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/playersListMenu"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/playersListLabel"
+            android:layout_width="156dp"
+            android:layout_height="31dp"
+            android:layout_marginTop="12dp"
+            android:text="@string/players_colon"
+            android:textAlignment="center"
+            app:autoSizeTextType="uniform"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ScrollView
+            android:id="@+id/playersListPlayersScroll"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="12dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/playersListLabel"
+            tools:ignore="SpeakableTextPresentCheck">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/playersListPlayersInnerArea"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <Button
+                    android:id="@+id/playersListPlayersInnerBackButton"
+                    android:layout_width="129dp"
+                    android:layout_height="51dp"
+                    android:text="@string/back"
+                    android:textSize="20sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/constraintLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="100dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:fadingEdge="vertical"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.0"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/playersListPlayersInnerBackButton">
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </ScrollView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/mainTurnMenu"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        tools:layout_editor_absoluteX="0dp"
+        tools:layout_editor_absoluteY="-16dp">
+
+        <ScrollView
+            android:id="@+id/mainTurnItemsScroll"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:contentDescription="@string/items"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/mainTurnMiddleArea">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/mainTurnItemsInner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/mainTurnItemsLabel"
+                    android:layout_width="132dp"
+                    android:layout_height="33dp"
+                    android:layout_marginTop="16dp"
+                    android:text="[(Max Items: ...)]"
+                    android:textAlignment="center"
+                    app:autoSizeTextType="uniform"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:ignore="HardcodedText" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </ScrollView>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/mainTurnMiddleArea"
+            android:layout_width="0dp"
+            android:layout_height="63dp"
+            android:layout_marginTop="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/mainTurnShootButton">
+
+            <Button
+                android:id="@+id/mainTurnMiddlePlayersButton"
+                android:layout_width="126dp"
+                android:layout_height="55dp"
+                android:layout_marginStart="16dp"
+                android:text="@string/players"
+                android:textSize="20sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@+id/mainTurnMiddleSpace"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.5"
+                tools:ignore="TextSizeCheck" />
+
+            <Button
+                android:id="@+id/mainTurnMiddleTradeButton"
+                android:layout_width="115dp"
+                android:layout_height="55dp"
+                android:layout_marginEnd="16dp"
+                android:text="@string/trade"
+                android:textSize="20sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/mainTurnMiddleSpace"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.454" />
+
+            <Space
+                android:id="@+id/mainTurnMiddleSpace"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <TextView
+            android:id="@+id/mainTurnLabel"
+            android:layout_width="237dp"
+            android:layout_height="39dp"
+            android:layout_marginTop="16dp"
+            android:text="[...'s Turn]"
+            android:textAlignment="center"
+            app:autoSizeTextType="uniform"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="HardcodedText" />
+
+        <Button
+            android:id="@+id/mainTurnShootButton"
+            android:layout_width="170dp"
+            android:layout_height="58dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/shoot"
+            android:textSize="28sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/mainTurnLabel" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/nextTurnMenu"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/nextTurnErrorLabel"
+            android:layout_width="346dp"
+            android:layout_height="37dp"
+            android:layout_marginTop="8dp"
+            android:textAlignment="center"
+            app:autoSizeTextType="uniform"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/nextTurnPasswordArea" />
+
+        <Button
+            android:id="@+id/nextTurnGoButton"
+            android:layout_width="125dp"
+            android:layout_height="50dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/go"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/nextTurnErrorLabel" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/nextTurnPasswordArea"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_marginTop="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/nextTurnLabel">
+
+            <EditText
+                android:id="@+id/nextTurnPasswordInput"
+                android:layout_width="218dp"
+                android:layout_height="50dp"
+                android:ems="10"
+                android:hint="@string/password_input"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:textSize="20sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/nextTurnPasswordLabel"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:ignore="TextFields,TextContrastCheck" />
+
+            <TextView
+                android:id="@+id/nextTurnPasswordLabel"
+                android:layout_width="124dp"
+                android:layout_height="34dp"
+                android:layout_marginStart="8dp"
+                android:text="@string/password"
+                android:textAlignment="center"
+                app:autoSizeTextType="uniform"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <TextView
+            android:id="@+id/nextTurnLabel"
+            android:layout_width="230dp"
+            android:layout_height="50dp"
+            android:layout_marginTop="24dp"
+            android:text="[...'s turn.]"
+            android:textAlignment="center"
+            app:autoSizeTextType="uniform"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="HardcodedText" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/giveItemsMenu"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ScrollView
+            android:id="@+id/giveItemsItemsScroll"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="24dp"
+            android:contentDescription="@string/list_of_new_items"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/giveItemsLabel"
+            app:layout_constraintVertical_bias="1.0">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/giveItemsItemsInnerArea"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <Button
+                    android:id="@+id/giveItemsItemsInnerNextButton"
+                    android:layout_width="128dp"
+                    android:layout_height="58dp"
+                    android:text="@string/next"
+                    android:textSize="24sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    tools:ignore="MissingConstraints" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </ScrollView>
+
+        <TextView
+            android:id="@+id/giveItemsLabel"
+            android:layout_width="267dp"
+            android:layout_height="45dp"
+            android:layout_marginTop="24dp"
+            android:text="[... is given:]"
+            android:textAlignment="center"
+            app:autoSizeTextType="uniform"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="HardcodedText" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/reloadBuckshotMenu"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/reloadBuckshotLabel"
+            android:layout_width="313dp"
+            android:layout_height="73dp"
+            android:layout_marginTop="28dp"
+            android:text="[The buckshot is loaded with ... lives and ... blanks.]"
+            android:textAlignment="center"
+            app:autoSizeTextType="uniform"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.491"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="HardcodedText" />
+
+        <Button
+            android:id="@+id/reloadBuckshotNextButton"
+            android:layout_width="152dp"
+            android:layout_height="54dp"
+            android:layout_marginTop="48dp"
+            android:text="@string/next"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/reloadBuckshotLabel" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/startRoundMenu"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/startRoundLabel"
+            android:layout_width="189dp"
+            android:layout_height="50dp"
+            android:layout_marginTop="32dp"
+            android:text="[Round ...]"
+            android:textAlignment="center"
+            app:autoSizeTextType="uniform"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="HardcodedText" />
+
+        <Button
+            android:id="@+id/startRoundStartButton"
+            android:layout_width="151dp"
+            android:layout_height="55dp"
+            android:layout_marginTop="48dp"
+            android:text="@string/start"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/startRoundLabel" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/startStageMenu"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/startStageLabel"
+            android:layout_width="256dp"
+            android:layout_height="61dp"
+            android:layout_marginTop="32dp"
+            android:text="[Stage ...]"
+            android:textAlignment="center"
+            app:autoSizeTextType="uniform"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="HardcodedText" />
+
+        <Button
+            android:id="@+id/startStageStartButton"
+            android:layout_width="146dp"
+            android:layout_height="63dp"
+            android:layout_marginTop="48dp"
+            android:text="@string/start"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/startStageLabel" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/playerCountMenu"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0"
+        tools:visibility="gone">
+
+        <TextView
+            android:id="@+id/playerCountLabel"
+            android:layout_width="244dp"
+            android:layout_height="41dp"
+            android:layout_marginTop="32dp"
+            android:text="@string/how_many_players"
+            app:autoSizeTextType="uniform"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <EditText
+            android:id="@+id/playerCountInput"
+            android:layout_width="197dp"
+            android:layout_height="54dp"
+            android:layout_marginTop="32dp"
+            android:ems="10"
+            android:hint="2+"
+            android:importantForAutofill="no"
+            android:inputType="number"
+            android:textSize="20sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/playerCountLabel"
+            tools:ignore="HardcodedText" />
+
+        <Button
+            android:id="@+id/playerCountGoButton"
+            android:layout_width="149dp"
+            android:layout_height="55dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/go"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/playerCountErrorLabel" />
+
+        <TextView
+            android:id="@+id/playerCountErrorLabel"
+            android:layout_width="0dp"
+            android:layout_height="39dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:textAlignment="center"
+            app:autoSizeTextType="uniform"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/playerCountInput" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/playerDataManu"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0">
+
+        <TextView
+            android:id="@+id/playerDataErrorLabel"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_marginTop="16dp"
+            android:textAlignment="center"
+            app:autoSizeTextType="uniform"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/playerDataPasswordArea" />
+
+        <Button
+            android:id="@+id/playerDataNextButton"
+            android:layout_width="129dp"
+            android:layout_height="50dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/next"
+            android:textSize="22sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/playerDataErrorLabel" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/playerDataPasswordArea"
+            android:layout_width="0dp"
+            android:layout_height="72dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/playerDataNameArea">
+
+            <EditText
+                android:id="@+id/playerDataPasswordInput"
+                android:layout_width="189dp"
+                android:layout_height="58dp"
+                android:ems="10"
+                android:hint="@string/leave_empty_for_no_password"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:textSize="14sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/playerDataPasswordLabel"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:ignore="TextFields,TextContrastCheck" />
+
+            <TextView
+                android:id="@+id/playerDataPasswordLabel"
+                android:layout_width="106dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="16dp"
+                android:text="@string/password"
+                android:textAlignment="center"
+                app:autoSizeTextType="uniform"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/playerDataNameArea"
+            android:layout_width="0dp"
+            android:layout_height="71dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/playerDataTopArea">
+
+            <TextView
+                android:id="@+id/playerDataNameLabel"
+                android:layout_width="108dp"
+                android:layout_height="31dp"
+                android:layout_marginStart="16dp"
+                android:text="@string/name"
+                android:textAlignment="center"
+                app:autoSizeTextType="uniform"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <EditText
+                android:id="@+id/playerDataNameInput"
+                android:layout_width="186dp"
+                android:layout_height="52dp"
+                android:ems="10"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:text=""
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/playerDataNameLabel"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:ignore="SpeakableTextPresentCheck" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/playerDataTopArea"
+            android:layout_width="0dp"
+            android:layout_height="69dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <TextView
+                android:id="@+id/playerDataTopLabel"
+                android:layout_width="176dp"
+                android:layout_height="41dp"
+                android:text="[Player 1...]"
+                android:textAlignment="center"
+                app:autoSizeTextType="uniform"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:ignore="HardcodedText" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
