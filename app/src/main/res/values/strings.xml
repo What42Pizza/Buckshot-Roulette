@@ -22,4 +22,6 @@
     <string name="players_colon">Players:</string>
     <string name="back">Back</string>
     <string name="use">Use</string>
+    <string name="no_items">[no items]</string>
+    <string name="items_colon">Items:</string>
 </resources>

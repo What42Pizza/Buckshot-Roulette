@@ -1,6 +1,6 @@
 package com.example.buckshotroulette
 
-// Started 24/01/24
+// Started 24/01/22
 
 import android.annotation.SuppressLint
 import android.graphics.drawable.Drawable
@@ -31,6 +31,16 @@ class MainActivity : AppCompatActivity() {
 		super.onCreate(savedInstanceState)
 		binding = ActivityMainBinding.inflate(layoutInflater)
 		setContentView(binding.root)
+
+		binding.playerCountMenu.visibility = View.VISIBLE
+		binding.playersListMenu.visibility = View.GONE
+		binding.mainTurnMenu.visibility = View.GONE
+		binding.nextTurnMenu.visibility = View.GONE
+		binding.giveItemsMenu.visibility = View.GONE
+		binding.reloadBuckshotMenu.visibility = View.GONE
+		binding.startRoundMenu.visibility = View.GONE
+		binding.startStageMenu.visibility = View.GONE
+		binding.playerDataManu.visibility = View.GONE
 
 
 
@@ -328,7 +338,7 @@ class MainActivity : AppCompatActivity() {
 
 			itemView.text = item.toSingularString()
 			itemView.textAlignment = View.TEXT_ALIGNMENT_CENTER
-			itemView.textSize = 24.0F
+			itemView.textSize = 24F
 
 			innerArea.addView(itemView)
 			itemView
@@ -350,7 +360,7 @@ class MainActivity : AppCompatActivity() {
 
 		}
 
-		innerAreaConstraints.connect(nextButton.id, ConstraintSet.TOP, currTopConstraint.id, ConstraintSet.BOTTOM)
+		innerAreaConstraints.connect(nextButton.id, ConstraintSet.TOP, currTopConstraint.id, topConstraintType)
 
 		innerAreaConstraints.applyTo(innerArea)
 
@@ -378,18 +388,29 @@ class MainActivity : AppCompatActivity() {
 		@SuppressLint("SetTextI18n")
 		binding.mainTurnLabel.text = currPlayer.name + "'s Turn"
 		@SuppressLint("SetTextI18n")
-		binding.mainTurnItemsLabel.text = "(Max items: " + data.maxItems + ")"
+		binding.mainTurnItemsBottomLabel.text = "(Max items: " + data.maxItems + ")"
 
 		val innerArea = binding.mainTurnItemsInner
 
-		val maxItemsLabel = binding.mainTurnItemsLabel
+		val maxItemsLabel = binding.mainTurnItemsBottomLabel
 		innerArea.removeAllViews()
 		innerArea.addView(maxItemsLabel)
 
-		val itemRowViews = Array(currPlayer.items.size / 2) { i ->
-			val itemRowView = generateItemRowView(currPlayer, i)
+		val itemRowViews = currPlayer.items.mapIndexed { i, item ->
+			val itemRowView = generateItemRowView(item.toSingularString(), i)
 			innerArea.addView(itemRowView)
 			itemRowView
+		}
+
+		val rowViews = if (currPlayer.items.isEmpty()) {
+			val noItemsLabel = TextView(this)
+			noItemsLabel.id = View.generateViewId()
+			innerArea.addView(noItemsLabel)
+			noItemsLabel.text = getString(R.string.no_items)
+			noItemsLabel.textSize = 16F
+			listOf(noItemsLabel)
+		} else {
+			itemRowViews
 		}
 
 		val innerAreaConstraints = ConstraintSet()
@@ -397,7 +418,7 @@ class MainActivity : AppCompatActivity() {
 
 		var currTopConstraint = innerArea as View
 		var topConstraintType = ConstraintSet.TOP
-		for (itemRowView in itemRowViews) {
+		for (itemRowView in rowViews) {
 
 			innerAreaConstraints.connect(itemRowView.id, ConstraintSet.START, innerArea.id, ConstraintSet.START)
 			innerAreaConstraints.connect(itemRowView.id, ConstraintSet.END, innerArea.id, ConstraintSet.END)
@@ -408,69 +429,26 @@ class MainActivity : AppCompatActivity() {
 
 		}
 
-		innerAreaConstraints.connect(binding.mainTurnItemsLabel.id, ConstraintSet.TOP, currTopConstraint.id, ConstraintSet.BOTTOM)
+		innerAreaConstraints.connect(binding.mainTurnItemsBottomLabel.id, ConstraintSet.TOP, currTopConstraint.id, topConstraintType)
 
 		innerAreaConstraints.applyTo(innerArea)
 
 	}
 
-	private fun generateItemRowView(currPlayer: PlayerData, i: Int): View {
-
-		val leftItem = currPlayer.items[i * 2]
-		val rightItem = currPlayer.items.getOrNull(i * 2 + 1)
-
-		val itemsFrameView = ConstraintLayout(this)
-		itemsFrameView.id = View.generateViewId()
-		val itemsFrameParams = ConstraintLayout.LayoutParams(0, 100)
-		(itemsFrameParams as MarginLayoutParams).setMargins(0, 16, 0, 0)
-		itemsFrameView.layoutParams = itemsFrameParams
-
-		val spaceView = Space(this)
-		spaceView.id = View.generateViewId()
-		spaceView.layoutParams = defaultLayoutParams()
-		itemsFrameView.addView(spaceView)
-
-		val leftItemLayout = createItemLayout(leftItem.toSingularString(), i * 2)
-		itemsFrameView.addView(leftItemLayout)
-		val rightItemLayout = if (rightItem != null) {
-			val rightItemLayout = createItemLayout(rightItem.toSingularString(), i * 2 + 1)
-			itemsFrameView.addView(rightItemLayout)
-			rightItemLayout
-		} else {null}
-
-		val itemsFrameConstraints = ConstraintSet()
-		itemsFrameConstraints.clone(itemsFrameView)
-		itemsFrameConstraints.connect(spaceView.id, ConstraintSet.TOP, itemsFrameView.id, ConstraintSet.TOP)
-		itemsFrameConstraints.connect(spaceView.id, ConstraintSet.BOTTOM, itemsFrameView.id, ConstraintSet.BOTTOM)
-		itemsFrameConstraints.connect(spaceView.id, ConstraintSet.START, itemsFrameView.id, ConstraintSet.START)
-		itemsFrameConstraints.connect(spaceView.id, ConstraintSet.END, itemsFrameView.id, ConstraintSet.END)
-		itemsFrameConstraints.connect(leftItemLayout.id, ConstraintSet.TOP, itemsFrameView.id, ConstraintSet.TOP)
-		itemsFrameConstraints.connect(leftItemLayout.id, ConstraintSet.BOTTOM, itemsFrameView.id, ConstraintSet.BOTTOM)
-		itemsFrameConstraints.connect(leftItemLayout.id, ConstraintSet.START, itemsFrameView.id, ConstraintSet.START)
-		itemsFrameConstraints.connect(leftItemLayout.id, ConstraintSet.END, spaceView.id, ConstraintSet.START)
-		if (rightItemLayout != null) {
-			itemsFrameConstraints.connect(rightItemLayout.id, ConstraintSet.TOP, itemsFrameView.id, ConstraintSet.TOP)
-			itemsFrameConstraints.connect(rightItemLayout.id, ConstraintSet.BOTTOM, itemsFrameView.id, ConstraintSet.BOTTOM)
-			itemsFrameConstraints.connect(rightItemLayout.id, ConstraintSet.START, spaceView.id, ConstraintSet.END)
-			itemsFrameConstraints.connect(rightItemLayout.id, ConstraintSet.END, itemsFrameView.id, ConstraintSet.END)
-		}
-		itemsFrameConstraints.applyTo(itemsFrameView)
-
-		return itemsFrameView
-	}
-
-	private fun createItemLayout(itemName: String, index: Int): ConstraintLayout {
+	private fun generateItemRowView(itemName: String, index: Int): ConstraintLayout {
 
 		val itemLayout = ConstraintLayout(this)
 		itemLayout.id = View.generateViewId()
-		itemLayout.layoutParams = defaultLayoutParams()
+		val itemLayoutLayout = ConstraintLayout.LayoutParams(0, ConstraintLayout.LayoutParams.WRAP_CONTENT)
+		(itemLayoutLayout as MarginLayoutParams).setMargins(0, 0, 32, 0)
+		itemLayout.layoutParams = itemLayoutLayout
 
 		val itemLabel = TextView(this)
 		itemLabel.id = View.generateViewId()
 		itemLabel.layoutParams = defaultLayoutParams()
 		itemLabel.text = itemName
 		itemLabel.textAlignment = View.TEXT_ALIGNMENT_CENTER
-		itemLabel.textSize = 12.0F
+		itemLabel.textSize = 20F
 		itemLayout.addView(itemLabel)
 
 		val itemUseButton = Button(this)
