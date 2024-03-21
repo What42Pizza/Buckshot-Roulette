@@ -152,38 +152,22 @@ pub fn play_stage(game_data: &mut GameData, stage_num: usize) {
 	utils::wait_and_clear();
 	
 	let mut round_num = 0;
+	println!("Round {round_num}");
+	utils::wait_and_clear();
 	loop {
-		
-		// start round
-		if game_data.curr_player == 0 {
-			round_num += 1;
-			
-			println!("Round {round_num}");
-			utils::wait_and_clear();
-			
-			// give items
-			let items_per_round = settings::items_per_round_for_stage(stage_num);
-			let max_items = settings::max_items_for_stage(stage_num);
-			for player in &mut game_data.players {
-				if player.lives == 0 {continue;}
-				let new_items_count = items_per_round.min(max_items - player.items.len());
-				let mut new_items = Vec::with_capacity(new_items_count);
-				for _ in 0..new_items_count {
-					let new_item = Item::random();
-					new_items.push(new_item);
-				}
-				println!("Player {} gets: {}", player.name, utils::stringify_list(&new_items));
-				player.items.append(&mut new_items);
-				utils::wait_and_clear();
-			}
-			
-		}
 		
 		play_turn(game_data, stage_num);
 		if game_data.count_alive_players() < 2 {break;}
 		
 		'inc_curr_player: loop {
-			game_data.curr_player = (game_data.curr_player + 1) % game_data.players.len();
+			game_data.curr_player += 1;
+			if game_data.curr_player == game_data.players.len() {
+				game_data.curr_player = 0;
+				round_num += 1;
+				println!("Round {round_num}");
+				utils::wait_and_clear();
+				give_items(game_data, stage_num);
+			}
 			if game_data.get_player().lives > 0 {break 'inc_curr_player;}
 		}
 	}
@@ -203,6 +187,25 @@ pub fn play_stage(game_data: &mut GameData, stage_num: usize) {
 		utils::wait_and_clear();
 	}
 	
+}
+
+
+
+pub fn give_items(game_data: &mut GameData, stage_num: usize) {
+	let items_per_round = settings::items_per_round_for_stage(stage_num);
+	let max_items = settings::max_items_for_stage(stage_num);
+	for player in &mut game_data.players {
+		if player.lives == 0 {continue;}
+		let new_items_count = items_per_round.min(max_items - player.items.len());
+		let mut new_items = Vec::with_capacity(new_items_count);
+		for _ in 0..new_items_count {
+			let new_item = Item::random();
+			new_items.push(new_item);
+		}
+		println!("Player {} gets: {}", player.name, utils::stringify_list(&new_items));
+		player.items.append(&mut new_items);
+		utils::wait_and_clear();
+	}
 }
 
 

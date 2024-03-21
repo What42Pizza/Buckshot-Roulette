@@ -78,9 +78,9 @@ dependencies = [
 
 [[package]]
 name = "smart-read"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "459dc1f8fd5dc9216ae18a2b1cc09af758f762aab8411ae0d2432b51d2c13659"
+checksum = "340bfd52a2a1539b392b2744ec193010f2d18196ec6c59401d385e75c1126c37"
 
 [[package]]
 name = "wasi"
