@@ -5,11 +5,18 @@ use std::fmt::{Display, Formatter};
 
 pub struct GameData {
 	pub players: Vec<Player>,
+	pub curr_player: usize,
 	pub buckshot: Vec<bool>,
 	pub has_barrel_extension: bool,
 }
 
 impl GameData {
+	pub fn get_player(&self) -> &Player {
+		&self.players[self.curr_player]
+	}
+	pub fn get_player_mut(&mut self) -> &mut Player {
+		&mut self.players[self.curr_player]
+	}
 	pub fn count_alive_players(&self) -> usize {
 		self.players.iter().filter(|p| p.lives > 0).count()
 	}
@@ -77,6 +84,19 @@ impl Item {
 			}
 		}
 		unreachable!()
+	}
+	pub fn from_strs(input: &[&str]) -> Option<Self> {
+		Some(match input {
+			&["cigarettes"] => Self::Cigarettes,
+			&["magnifying", "glass"] => Self::MagnifyingGlass,
+			&["beer"] => Self::Beer,
+			&["barrel", "extension"] => Self::BarrelExtension,
+			&["handcuffs"] => Self::Handcuffs,
+			&["unknown", "ticket"] => Self::UnknownTicket,
+			&["live", "shell"] => Self::LiveShell,
+			&["blank", "shell"] => Self::BlankShell,
+			_ => return None,
+		})
 	}
 }
 

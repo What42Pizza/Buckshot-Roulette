@@ -33,7 +33,7 @@ Magnifying Glass (uncommon): Check if current round is live
 Beer (common): Empty the current round (ends turn if buckshot is emptied)
 Barrel Extension (uncommon): Doubles shotgun damage and credits (removed after shot, regardless of live or blank)
 Handcuffs (common): Skips a player's next turn
-Unknown Ticket (rare): Restarts turn (only used whenever turn would end, allows trading again)
+Unknown Ticket (rare): Restarts turn (can only be used once per round; only used whenever turn would end; allows trading again)
 Live Shell (common): Adds a live to the buckshot (in a random position)
 Blank Shell (uncommon): Adds a blank to the buckshot (in a random position)
 
