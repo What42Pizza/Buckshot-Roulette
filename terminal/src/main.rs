@@ -1,5 +1,5 @@
 // Started:      24/01/24
-// Last updated: 24/03/20
+// Last updated: 24/03/22
 
 
 
@@ -78,6 +78,14 @@ fn main() {
 	get_names_and_passwords(&mut players);
 	utils::clear();
 	
+	let add_house = prompt!("Add house? "; YesNoInput);
+	if add_house {
+		let mut house = Player::new();
+		house.name = String::from("House");
+		players.insert(0, house);
+		utils::clear();
+	}
+	
 	let mut game_data = GameData {
 		players,
 		curr_player: 0,
@@ -113,7 +121,12 @@ pub fn get_names_and_passwords(players: &mut [Player]) {
 		println!("Enter the data for player {}", i + 1);
 		
 		'name_input: loop {
-			let new_name = prompt!("Player name: "; NonEmptyInput);
+			let new_name = prompt!("Player name: "; SimpleValidate (|input| {
+				let input = input.trim();
+				if input.is_empty() {return Err(String::from("Invalid input, cannot be empty."));}
+				if &*input.to_lowercase() == "house" {return Err(String::from("Invalid input, cannot name self \"House\"."))}
+				std::result::Result::Ok(())
+			}));
 			for player in players.iter().take(i) {
 				if player.name == new_name {
 					println!("Name is already in use.");
@@ -156,9 +169,14 @@ pub fn play_stage(game_data: &mut GameData, stage_num: usize) {
 	println!("Round {round_num}");
 	utils::wait_and_clear();
 	give_items(game_data, stage_num);
+	reload_buckshot_if_needed(&mut game_data.buckshot, stage_num);
 	loop {
 		
-		play_turn(game_data, stage_num);
+		if &*game_data.get_player().name == "House" {
+			play_as_house(game_data, stage_num);
+		} else {
+			play_turn(game_data, stage_num);
+		}
 		if game_data.count_alive_players() < 2 {break;}
 		
 		'inc_curr_player: loop {
@@ -212,9 +230,228 @@ pub fn give_items(game_data: &mut GameData, stage_num: usize) {
 
 
 
+pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
+	'turn: loop {
+		let house = &mut game_data.players[0];
+		
+		println!("Starting House's turn.");
+		
+		
+		// handcuffs
+		match house.handcuffed_level {
+			HandcuffedLevel::Uncuffed => {}
+			HandcuffedLevel::AlmostUncuffed => {
+				house.handcuffed_level = HandcuffedLevel::Uncuffed;
+				println!();
+				println!("House is now uncuffed.");
+			}
+			HandcuffedLevel::NewlyHandcuffed => {
+				house.handcuffed_level = HandcuffedLevel::AlmostUncuffed;
+				println!();
+				println!("House is handcuffed, skipping turn.");
+				println!();
+				return;
+			}
+		}
+		utils::wait_and_clear();
+		
+		
+		// use cigarettes, magazine, handcuffs
+		let mut lives_count = game_data.buckshot.iter().filter(|x| **x).count();
+		let mut blanks_count = game_data.buckshot.len() - lives_count;
+		for i in (0..house.items.len()).rev() {
+			let house = &mut game_data.players[0];
+			match house.items[i] {
+				
+				Item::Cigarettes if house.lives < settings::max_items_for_stage(stage_num) => {
+					if house.lives == settings::max_items_for_stage(stage_num) {break;}
+					if house.items[i] != Item::Cigarettes {continue;}
+					house.lives += 1;
+					println!("House uses Cigarettes.");
+				}
+				
+				Item::Handcuffs => {
+					let mut players_to_handcuff = 
+						game_data.players[1..].iter_mut()
+						.filter(|player| player.lives > 0 && player.handcuffed_level == HandcuffedLevel::Uncuffed)
+						.collect::<Vec<_>>();
+					if players_to_handcuff.is_empty() {continue;}
+					let player_to_handcuff_index = rand::thread_rng().gen_range(0..players_to_handcuff.len());
+					players_to_handcuff[player_to_handcuff_index].handcuffed_level = HandcuffedLevel::NewlyHandcuffed;
+					println!("House handcuffs {}.", players_to_handcuff[player_to_handcuff_index].name);
+				}
+				
+				Item::Magazine => {
+					game_data.buckshot.clear();
+					println!("House uses Magazine");
+					reload_buckshot_if_needed(&mut game_data.buckshot, stage_num);
+					game_data.players[0].items.remove(i);
+					continue;
+				}
+				
+				Item::Beer if blanks_count > lives_count && game_data.buckshot.len() > 1 => {
+					#[allow(clippy::unwrap_used)] // because of `game_data.buckshot.len() > 1`
+					let popped_is_live = game_data.buckshot.pop().unwrap();
+					println!("House uses Beer, pops a {}.", if popped_is_live {"live"} else {"blank"});
+				}
+				
+				_ => continue,
+			}
+			game_data.players[0].items.remove(i);
+			utils::wait_and_clear();
+		}
+		let house = &mut game_data.players[0];
+		
+		
+		// use shells
+		for i in (0..house.items.len()).rev() {
+			match house.items[i] {
+				Item::LiveShell => {
+					let index = rand::thread_rng().gen_range(0..=game_data.buckshot.len());
+					game_data.buckshot.insert(index, true);
+					lives_count += 1;
+					println!("House uses a Live Shell.");
+				}
+				Item::BlankShell => {
+					let index = rand::thread_rng().gen_range(0..=game_data.buckshot.len());
+					game_data.buckshot.insert(index, false);
+					blanks_count += 1;
+					println!("House uses a Blank Shell.");
+				}
+				_ => continue,
+			}
+			house.items.remove(i);
+			utils::wait_and_clear();
+		}
+		
+		
+		'shoot: loop {
+			let house = &mut game_data.players[0];
+			
+			
+			// decide if live / use magnifying glass
+			let mut assumed_live =
+				if lives_count == 0 {
+					false
+				} else if blanks_count == 0 {
+					true
+				} else if let Some((magnifying_glass_index, _)) = house.items.iter().enumerate().find(|(_index, item)| **item == Item::MagnifyingGlass) {
+					println!("House uses Magnifying Glass.");
+					utils::wait_and_clear();
+					house.items.remove(magnifying_glass_index);
+					*game_data.buckshot.last().unwrap_or_else(|| panic!("The buckshot is empty."))
+				} else {
+					rand::thread_rng().gen::<f32>() < lives_count as f32 / game_data.buckshot.len() as f32
+				};
+			
+			
+			// use barrel extension
+			if assumed_live && let Some((barrel_extension_index, _)) = house.items.iter().enumerate().find(|(_index, item)| **item == Item::BarrelExtension) {
+				house.items.remove(barrel_extension_index);
+				game_data.has_barrel_extension = true;
+				println!("House uses Barrel Extension.");
+				utils::wait_and_clear();
+			}
+			
+			
+			if assumed_live {
+				
+				// decide who to shoot
+				let mut highest_lives = 0;
+				let players_to_shoot =
+					game_data.players[1..].iter_mut()
+					.filter(|player| {
+						highest_lives = highest_lives.max(player.lives);
+						player.lives > 0
+					})
+					.collect::<Vec<_>>();
+				let mut players_to_shoot =
+					players_to_shoot.into_iter()
+					.filter(|player| player.lives == highest_lives)
+					.collect::<Vec<_>>();
+				let player_to_shoot = players_to_shoot.remove(rand::thread_rng().gen_range(0..players_to_shoot.len()));
+				
+				// shoot
+				println!("House points the buckshot at {}.", player_to_shoot.name);
+				utils::wait_and_clear();
+				let is_live = game_data.buckshot.pop().unwrap_or_else(|| panic!("The buckshot is empty."));
+				if is_live {
+					println!("The buckshot shoots.");
+					let damage = if game_data.has_barrel_extension {2} else {1};
+					if damage >= player_to_shoot.lives {
+						utils::wait_and_clear();
+						println!("{} has lost all lives.", player_to_shoot.name);
+						player_to_shoot.lives = 0;
+						player_to_shoot.items.clear();
+					} else {
+						player_to_shoot.lives -= damage;
+					}
+				} else {
+					println!("The buckshot clicks.");
+				}
+				utils::wait_and_clear();
+				game_data.players[0].credits += settings::credit_per_shot_for_stage(stage_num);
+				game_data.has_barrel_extension = false;
+				
+				break 'shoot;
+			} else {
+				
+				// shoot self
+				println!("House points the buckshot at itself.");
+				utils::wait_and_clear();
+				let is_live = game_data.buckshot.pop().unwrap_or_else(|| panic!("The buckshot is empty."));
+				if is_live {
+					println!("The buckshot shoots.");
+					let damage = if game_data.has_barrel_extension {2} else {1};
+					if damage >= house.lives {
+						utils::wait_and_clear();
+						println!("House has lost all lives.");
+						house.lives = 0;
+						house.items.clear();
+						return;
+					} else {
+						house.lives -= damage;
+					}
+					break 'shoot;
+				} else {
+					println!("The buckshot clicks.");
+				}
+				utils::wait_and_clear();
+				game_data.players[0].credits += settings::credit_per_shot_for_stage(stage_num);
+				game_data.has_barrel_extension = false;
+				if game_data.buckshot.is_empty() {
+					reload_buckshot_if_needed(&mut game_data.buckshot, stage_num);
+					break 'shoot;
+				}
+				continue 'shoot;
+				
+			}
+			unreachable!();
+			
+			
+		}
+		
+		
+		// use unknown ticket
+		let house = &mut game_data.players[0];
+		if let Some((unknown_ticket_index, _)) = house.items.iter().enumerate().find(|(_index, item)| **item == Item::UnknownTicket) {
+			println!("House uses unknown ticket");
+			house.items.remove(unknown_ticket_index);
+			continue 'turn;
+		} else {
+			break 'turn;
+		}
+		unreachable!();
+		
+		
+	}
+}
+
+
+
 pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
 	
-	reload_buckshot_if_needed(&mut game_data.buckshot, stage_num);
+	//reload_buckshot_if_needed(&mut game_data.buckshot, stage_num);
 	
 	let player = game_data.get_player_mut();
 	println!("Starting {}'s turn.", player.name);
