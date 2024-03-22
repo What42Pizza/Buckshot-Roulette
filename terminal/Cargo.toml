@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.79"
 rand = "0.8.5"
-smart-read = "0.3.2"
+smart-read = "0.4.0"

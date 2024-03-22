@@ -43,7 +43,8 @@ pub mod settings {
 		(Item::MagnifyingGlass, ITEM_CHANCE_UNCOMMON),
 		(Item::Beer           , ITEM_CHANCE_COMMON  ),
 		(Item::BarrelExtension, ITEM_CHANCE_UNCOMMON),
-		(Item::Handcuffs      , ITEM_CHANCE_COMMON  ),
+		(Item::Magazine       , ITEM_CHANCE_UNCOMMON),
+		(Item::Handcuffs      , ITEM_CHANCE_RARE    ),
 		(Item::UnknownTicket  , ITEM_CHANCE_RARE    ),
 		(Item::LiveShell      , ITEM_CHANCE_COMMON  ),
 		(Item::BlankShell     , ITEM_CHANCE_UNCOMMON),
@@ -151,9 +152,10 @@ pub fn play_stage(game_data: &mut GameData, stage_num: usize) {
 	
 	utils::wait_and_clear();
 	
-	let mut round_num = 0;
+	let mut round_num = 1;
 	println!("Round {round_num}");
 	utils::wait_and_clear();
+	give_items(game_data, stage_num);
 	loop {
 		
 		play_turn(game_data, stage_num);
@@ -274,6 +276,7 @@ pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
 		'inner: loop {
 			utils::clear();
 			println!("Player {}'s turn.", game_data.get_player().name);
+			println!();
 			print_stats(game_data);
 			println!();
 			let options: &[&str] = if can_trade {&["shoot", "use item", "trade"]} else {&["shoot", "use item"]};
@@ -364,7 +367,9 @@ pub fn shoot(game_data: &mut GameData, stage_num: usize) -> ShotEndsTurn {
 		if damage >= game_data.players[to_shoot_index].lives {
 			utils::wait_and_clear();
 			println!("{to_shoot} has lost all lives.");
-			game_data.players[to_shoot_index].lives = 0;
+			let to_shoot_player = &mut game_data.players[to_shoot_index];
+			to_shoot_player.lives = 0;
+			to_shoot_player.items.clear();
 		} else {
 			game_data.players[to_shoot_index].lives -= damage;
 		}
@@ -452,12 +457,25 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> PoppedLastShell {
 			utils::wait_and_clear();
 		}
 		
+		Item::Magazine => {
+			let confirm = prompt!("Are you sure you want to this item? "; YesNoInput);
+			if !confirm {return false;}
+			game_data.buckshot.clear();
+			reload_buckshot_if_needed(&mut game_data.buckshot, stage_num);
+		}
+		
 		Item::Handcuffs => {
 			let curr_player_name = &game_data.get_player().name;
 			let player_names =
 				game_data.players.iter()
-				.filter_map(|p| utils::some_if(&p.name, p.lives > 0 && &p.name != curr_player_name))
+				.filter(|p| p.lives > 0 && &p.name != curr_player_name && p.handcuffed_level == HandcuffedLevel::Uncuffed)
+				.map(|p| &p.name)
 				.collect::<Vec<_>>();
+			if player_names.is_empty() {
+				println!("There are no players that can be handcuffed.");
+				utils::wait_and_clear();
+				return false;
+			}
 			let to_handcuff = prompt!("Who do you want to handcuff? "; player_names);
 			let to_handcuff_index = game_data.index_of_player(to_handcuff);
 			let confirm = prompt!(format!("Are you sure you want to handcuff {to_handcuff}? "); YesNoInput);
@@ -702,6 +720,14 @@ pub fn prompt_accept_trade(game_data: &GameData, curr_player: usize, curr_player
 
 
 pub fn print_stats(game_data: &GameData) {
+	let lives = game_data.buckshot.iter().filter(|x| **x).count();
+	let blanks = game_data.buckshot.len() - lives;
+	match (lives > 0, blanks > 0) {
+		(true, true) => println!("The buckshot contains {} {} and {} {}", lives, utils::pluralize(lives as f32, "live", "lives"), blanks, utils::pluralize(blanks as f32, "blank", "blanks")),
+		(true, false) => println!("The buckshot contains {} {}", lives, utils::pluralize(lives as f32, "live", "lives")),
+		(false, true) => println!("The buckshot contains {} {}", blanks, utils::pluralize(blanks as f32, "blank", "blanks")),
+		(false, false) => panic!("The buckshot is empty."),
+	}
 	for player in &game_data.players {
 		println!();
 		println!("Player {}:", player.name);

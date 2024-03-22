@@ -32,7 +32,8 @@ Cigarettes (uncommon): Regain a life (up to how many the stage starts with)
 Magnifying Glass (uncommon): Check if current round is live
 Beer (common): Empty the current round (ends turn if buckshot is emptied)
 Barrel Extension (uncommon): Doubles shotgun damage and credits (removed after shot, regardless of live or blank)
-Handcuffs (common): Skips a player's next turn
+Magazine (uncommon): Empties the buckshot and reloads it (does not end turn)
+Handcuffs (rare): Skips a player's next turn
 Unknown Ticket (rare): Restarts turn (can only be used once per round; only used whenever turn would end; allows trading again)
 Live Shell (common): Adds a live to the buckshot (in a random position)
 Blank Shell (uncommon): Adds a blank to the buckshot (in a random position)
@@ -43,4 +44,4 @@ Uncommon: 0.6x multiplier
 Rare: 0.3x multiplier
 ```
 
-Also, this is my first Android app (or any app for that reason). I'm only making this for myself, so I can't guarantee any support
+Also, the android version is my first Android app (or any app for that reason). I'm only making this for myself, so I can't guarantee any support
