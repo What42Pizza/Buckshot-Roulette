@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.79"
+clearscreen = "2.0.1"
 rand = "0.8.5"
 smart-read = "0.4.0"

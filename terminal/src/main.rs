@@ -289,9 +289,8 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 					continue;
 				}
 				
-				Item::Beer if blanks_count > lives_count && game_data.buckshot.len() > 1 => {
-					#[allow(clippy::unwrap_used)] // because of `game_data.buckshot.len() > 1`
-					let popped_is_live = game_data.buckshot.pop().unwrap();
+				Item::Beer if blanks_count > lives_count => {
+					let popped_is_live = game_data.buckshot.pop().unwrap_or_else(|| panic!("The buckshot is empty."));
 					println!("House uses Beer, pops a {}.", if popped_is_live {"live"} else {"blank"});
 				}
 				

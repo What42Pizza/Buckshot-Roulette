@@ -4,7 +4,7 @@ use std::fmt::Display;
 
 
 pub fn clear() {
-	print!("{}c", 27 as char);
+	clearscreen::clear().unwrap_or_else(|error| panic!("Unable to clear screen: {error}"));
 }
 
 pub fn wait() {

@@ -6,6 +6,10 @@ Basically, for a while now, I've wanted something that me and my family could pl
 
 <br>
 
+## Note: The android app version likely will not be finished, so I recommend using the terminal version instead.
+
+<br>
+
 Because this is made for multiple players instead of player vs ai, the rules are fairly significantly different, so here's the full rules for this version: (feel free to copy any / all of this)
 
 ```
