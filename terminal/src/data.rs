@@ -20,8 +20,8 @@ impl GameData {
 	pub fn count_alive_players(&self) -> usize {
 		self.players.iter().filter(|p| p.lives > 0).count()
 	}
-	pub fn index_of_player(&self, player_name: &str) -> usize {
-		self.players.iter().enumerate().find(|(_index, player)| &*player.name == player_name).unwrap().0
+	pub fn index_of_player(&self, player_name: &str) -> Option<usize> {
+		self.players.iter().enumerate().find(|(_index, player)| &*player.name == player_name).map(|(index, _player)| index)
 	}
 }
 
@@ -87,16 +87,16 @@ impl Item {
 		unreachable!()
 	}
 	pub fn from_strs(input: &[&str]) -> Option<Self> {
-		Some(match input {
-			&["cigarettes"] => Self::Cigarettes,
-			&["magnifying", "glass"] => Self::MagnifyingGlass,
-			&["beer"] => Self::Beer,
-			&["barrel", "extension"] => Self::BarrelExtension,
-			&["magazine"] => Self::Magazine,
-			&["handcuffs"] => Self::Handcuffs,
-			&["unknown", "ticket"] => Self::UnknownTicket,
-			&["live", "shell"] => Self::LiveShell,
-			&["blank", "shell"] => Self::BlankShell,
+		Some(match *input {
+			["cigarettes"] => Self::Cigarettes,
+			["magnifying", "glass"] => Self::MagnifyingGlass,
+			["beer"] => Self::Beer,
+			["barrel", "extension"] => Self::BarrelExtension,
+			["magazine"] => Self::Magazine,
+			["handcuffs"] => Self::Handcuffs,
+			["unknown", "ticket"] => Self::UnknownTicket,
+			["live", "shell"] => Self::LiveShell,
+			["blank", "shell"] => Self::BlankShell,
 			_ => return None,
 		})
 	}

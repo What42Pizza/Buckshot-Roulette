@@ -1,12 +1,9 @@
 // Started:      24/01/24
-// Last updated: 24/03/22
+// Last updated: 24/03/27
 
 
 
 #![feature(let_chains)]
-
-#![allow(unused)]
-#![warn(unused_must_use)]
 
 #![allow(clippy::new_without_default)]
 #![warn(clippy::todo, clippy::unwrap_used)]
@@ -83,8 +80,8 @@ fn main() {
 		let mut house = Player::new();
 		house.name = String::from("House");
 		players.insert(0, house);
-		utils::clear();
 	}
+	utils::clear();
 	
 	let mut game_data = GameData {
 		players,
@@ -263,9 +260,7 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 			let house = &mut game_data.players[0];
 			match house.items[i] {
 				
-				Item::Cigarettes if house.lives < settings::max_items_for_stage(stage_num) => {
-					if house.lives == settings::max_items_for_stage(stage_num) {break;}
-					if house.items[i] != Item::Cigarettes {continue;}
+				Item::Cigarettes if house.lives < settings::lives_for_stage(stage_num) => {
 					house.lives += 1;
 					println!("House uses Cigarettes.");
 				}
@@ -328,8 +323,8 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 			let house = &mut game_data.players[0];
 			
 			
-			// decide if live / use magnifying glass
-			let mut assumed_live =
+			// decide if live & use magnifying glass
+			let assumed_live =
 				if lives_count == 0 {
 					false
 				} else if blanks_count == 0 {
@@ -425,7 +420,6 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 				continue 'shoot;
 				
 			}
-			unreachable!();
 			
 			
 		}
@@ -440,7 +434,6 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 		} else {
 			break 'turn;
 		}
-		unreachable!();
 		
 		
 	}
@@ -449,8 +442,6 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 
 
 pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
-	
-	//reload_buckshot_if_needed(&mut game_data.buckshot, stage_num);
 	
 	let player = game_data.get_player_mut();
 	println!("Starting {}'s turn.", player.name);
@@ -482,6 +473,7 @@ pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
 			let password_2 = prompt!("Re-enter password to confirm: ");
 			if password_1 != password_2 {println!("Passwords do not match."); continue;}
 			player.password = if password_1.is_empty() {None} else {Some(password_1)};
+			utils::clear();
 			break;
 		}
 		return;
@@ -492,16 +484,16 @@ pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
 	println!("Player {}'s turn.", player.name);
 	if let Some(password) = &player.password {
 		loop {
-			let input = prompt!("Enter your password:");
+			let input = prompt!("Enter your password: ");
 			if &input == password {break;}
 			let retry = prompt!("Password is incorrect. Do you want to try again? "; YesNoInput);
 			if retry {continue;}
 			let reset = prompt!("Do you want to skip your turn and reset? (no = retry) "; YesNoInput);
+			utils::clear();
 			if reset {
 				player.is_resetting_password = true;
 				return;
 			}
-			utils::clear();
 		}
 	}
 	
@@ -587,7 +579,8 @@ pub fn shoot(game_data: &mut GameData, stage_num: usize) -> ShotEndsTurn {
 		.filter_map(|p| utils::some_if(&p.name, p.lives > 0))
 		.collect::<Vec<_>>();
 	let to_shoot = prompt!("Who do you want to shoot?"; player_names);
-	let to_shoot_index = game_data.index_of_player(to_shoot);
+	#[allow(clippy::unwrap_used)] // because to_shoot comes from players
+	let to_shoot_index = game_data.index_of_player(to_shoot).unwrap();
 	let confirm = prompt!(format!("Are you sure you want to shoot {to_shoot}? "); YesNoInput);
 	if !confirm {return false;}
 	println!();
@@ -713,7 +706,8 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> PoppedLastShell {
 				return false;
 			}
 			let to_handcuff = prompt!("Who do you want to handcuff? "; player_names);
-			let to_handcuff_index = game_data.index_of_player(to_handcuff);
+			#[allow(clippy::unwrap_used)] // because to_handcuff comes from players
+			let to_handcuff_index = game_data.index_of_player(to_handcuff).unwrap();
 			let confirm = prompt!(format!("Are you sure you want to handcuff {to_handcuff}? "); YesNoInput);
 			if !confirm {return false;}
 			let to_handcuff_player = &mut game_data.players[to_handcuff_index];
@@ -764,7 +758,8 @@ pub fn trade(game_data: &mut GameData, can_trade: &mut bool) {
 		.filter_map(|p| utils::some_if(&p.name, p.lives > 0 && &p.name != curr_player_name))
 		.collect::<Vec<_>>();
 	let other_player_name = prompt!("Who do you want to trade with? "; player_names);
-	let other_player = game_data.index_of_player(other_player_name);
+	#[allow(clippy::unwrap_used)] // because other_player_name comes from players
+	let other_player = game_data.index_of_player(other_player_name).unwrap();
 	let mut curr_player_items = vec!();
 	let mut other_player_items = vec!();
 	
