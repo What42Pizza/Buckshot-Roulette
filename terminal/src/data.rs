@@ -63,6 +63,7 @@ impl Player {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Item {
 	Cigarettes,
+	ExpiredMedicine,
 	MagnifyingGlass,
 	Beer,
 	BarrelExtension,
@@ -71,15 +72,35 @@ pub enum Item {
 	UnknownTicket,
 	LiveShell,
 	BlankShell,
+	GoldShell,
+	Inverter,
 }
+
+pub const ITEMS_LIST: &[Item] = &[
+	Item::Cigarettes,
+	Item::ExpiredMedicine,
+	Item::MagnifyingGlass,
+	Item::Beer,
+	Item::BarrelExtension,
+	Item::Magazine,
+	Item::Handcuffs,
+	Item::UnknownTicket,
+	Item::LiveShell,
+	Item::BlankShell,
+	Item::GoldShell,
+	Item::Inverter,
+];
 
 impl Item {
 	pub fn random() -> Self {
-		let total_rarities = settings::ITEM_RARITIES.iter().fold(0., |total, (_, rarity)| total + rarity);
+		let total_rarities =
+			ITEMS_LIST.iter().cloned()
+			.map(settings::get_item_rarity)
+			.fold(0., |total, rarity| total + rarity);
 		let chosen = rand::thread_rng().gen_range(0. .. total_rarities);
 		let mut total = 0.;
-		for (item, rarity) in settings::ITEM_RARITIES {
-			total += rarity;
+		for item in ITEMS_LIST {
+			total += settings::get_item_rarity(*item);
 			if total >= chosen {
 				return *item;
 			}
@@ -89,6 +110,7 @@ impl Item {
 	pub fn from_strs(input: &[&str]) -> Option<Self> {
 		Some(match *input {
 			["cigarettes"] => Self::Cigarettes,
+			["expired", "medicine"] => Self::ExpiredMedicine,
 			["magnifying", "glass"] => Self::MagnifyingGlass,
 			["beer"] => Self::Beer,
 			["barrel", "extension"] => Self::BarrelExtension,
@@ -97,6 +119,8 @@ impl Item {
 			["unknown", "ticket"] => Self::UnknownTicket,
 			["live", "shell"] => Self::LiveShell,
 			["blank", "shell"] => Self::BlankShell,
+			["gold", "shell"] => Self::GoldShell,
+			["inverter"] => Self::Inverter,
 			_ => return None,
 		})
 	}
@@ -106,6 +130,7 @@ impl Display for Item {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
 		write!(f, "{}", match self {
 			Self::Cigarettes => "Cigarettes",
+			Self::ExpiredMedicine => "Expired Medicine",
 			Self::MagnifyingGlass => "Magnifying Glass",
 			Self::Beer => "Beer",
 			Self::BarrelExtension => "Barrel Extension",
@@ -114,6 +139,8 @@ impl Display for Item {
 			Self::UnknownTicket => "Unknown Ticket",
 			Self::LiveShell => "Live Shell",
 			Self::BlankShell => "Blank Shell",
+			Self::GoldShell => "Gold Shell",
+			Self::Inverter => "Inverter",
 		})
 	}
 }

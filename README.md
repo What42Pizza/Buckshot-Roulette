@@ -33,6 +33,7 @@ You can only trade once per turn, and all trades must be one item for another it
 
 Items:
 Cigarettes (uncommon): Regain a life (up to how many the stage starts with)
+Expired Medicine (common): 40% chance to gain 2 lives, 60% chance to lose a life
 Magnifying Glass (uncommon): Check if current round is live
 Beer (common): Empty the current round (ends turn if buckshot is emptied)
 Barrel Extension (uncommon): Doubles shotgun damage and credits (removed after shot, regardless of live or blank)
@@ -41,6 +42,8 @@ Handcuffs (rare): Skips a player's next turn
 Unknown Ticket (rare): Restarts turn (can only be used once per round; only used whenever turn would end; allows trading again)
 Live Shell (common): Adds a live to the buckshot (in a random position)
 Blank Shell (uncommon): Adds a blank to the buckshot (in a random position)
+Gold Shell (rare): Adds a live to the top of the buckshot
+Inverter (uncommon): Swaps the current round with its opposite
 
 
 Common: 1x multiplier

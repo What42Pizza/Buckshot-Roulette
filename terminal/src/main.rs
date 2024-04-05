@@ -1,12 +1,12 @@
 // Started:      24/01/24
-// Last updated: 24/03/27
+// Last updated: 24/04/04
 
 
 
 #![feature(let_chains)]
 
 #![allow(clippy::new_without_default)]
-#![warn(clippy::todo, clippy::unwrap_used)]
+#![warn(clippy::todo, clippy::unwrap_used, clippy::expect_used)]
 
 
 
@@ -35,17 +35,22 @@ pub mod settings {
 	pub const ITEM_CHANCE_COMMON: f32   = 1.0;
 	pub const ITEM_CHANCE_UNCOMMON: f32 = 0.6;
 	pub const ITEM_CHANCE_RARE: f32     = 0.3;
-	pub const ITEM_RARITIES: &[(Item, f32)] = &[
-		(Item::Cigarettes     , ITEM_CHANCE_UNCOMMON),
-		(Item::MagnifyingGlass, ITEM_CHANCE_UNCOMMON),
-		(Item::Beer           , ITEM_CHANCE_COMMON  ),
-		(Item::BarrelExtension, ITEM_CHANCE_UNCOMMON),
-		(Item::Magazine       , ITEM_CHANCE_UNCOMMON),
-		(Item::Handcuffs      , ITEM_CHANCE_RARE    ),
-		(Item::UnknownTicket  , ITEM_CHANCE_RARE    ),
-		(Item::LiveShell      , ITEM_CHANCE_COMMON  ),
-		(Item::BlankShell     , ITEM_CHANCE_UNCOMMON),
-	];
+	pub fn get_item_rarity(item: Item) -> f32 {
+		match item {
+			Item::Cigarettes      => ITEM_CHANCE_UNCOMMON,
+			Item::ExpiredMedicine => ITEM_CHANCE_COMMON  ,
+			Item::MagnifyingGlass => ITEM_CHANCE_UNCOMMON,
+			Item::Beer            => ITEM_CHANCE_COMMON  ,
+			Item::BarrelExtension => ITEM_CHANCE_UNCOMMON,
+			Item::Magazine        => ITEM_CHANCE_UNCOMMON,
+			Item::Handcuffs       => ITEM_CHANCE_RARE    ,
+			Item::UnknownTicket   => ITEM_CHANCE_RARE    ,
+			Item::LiveShell       => ITEM_CHANCE_COMMON  ,
+			Item::BlankShell      => ITEM_CHANCE_UNCOMMON,
+			Item::GoldShell       => ITEM_CHANCE_RARE    ,
+			Item::Inverter        => ITEM_CHANCE_UNCOMMON,
+		}
+	}
 	
 }
 
@@ -75,7 +80,7 @@ fn main() {
 	get_names_and_passwords(&mut players);
 	utils::clear();
 	
-	let add_house = prompt!("Add house? "; YesNoInput);
+	let add_house = prompt!("Add House? "; YesNoInput);
 	if add_house {
 		let mut house = Player::new();
 		house.name = String::from("House");
@@ -265,6 +270,19 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 					println!("House uses Cigarettes.");
 				}
 				
+				Item::ExpiredMedicine if house.lives > 1 && house.lives + 2 <= settings::lives_for_stage(stage_num) => {
+					println!("House uses Expired Medicine.");
+					utils::wait();
+					let gives_lives = rand::thread_rng().gen::<f32>() < 0.4;
+					if gives_lives {
+						println!("+2 lives.");
+						house.lives += 2;
+					} else {
+						println!("-1 life.");
+						house.lives -= 1;
+					}
+				}
+				
 				Item::Handcuffs => {
 					let mut players_to_handcuff = 
 						game_data.players[1..].iter_mut()
@@ -284,8 +302,9 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 					continue;
 				}
 				
-				Item::Beer if blanks_count > lives_count => {
-					let popped_is_live = game_data.buckshot.pop().unwrap_or_else(|| panic!("The buckshot is empty."));
+				Item::Beer if blanks_count > lives_count && (blanks_count + lives_count > 2) => {
+					#[allow(clippy::expect_used)]
+					let popped_is_live = game_data.buckshot.pop().expect("The buckshot is empty.");
 					println!("House uses Beer, pops a {}.", if popped_is_live {"live"} else {"blank"});
 				}
 				
@@ -319,13 +338,28 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 		}
 		
 		
+		// use gold shells
+		let mut gold_shell_count = 0;
+		for i in (0..house.items.len()).rev() {
+			if house.items[i] != Item::GoldShell {continue;}
+			game_data.buckshot.push(true);
+			println!("House uses a Gold Shell.");
+			lives_count += 1;
+			gold_shell_count += 1;
+			house.items.remove(i);
+			utils::wait_and_clear();
+		}
+		
+		
 		'shoot: loop {
 			let house = &mut game_data.players[0];
 			
 			
 			// decide if live & use magnifying glass
-			let assumed_live =
-				if lives_count == 0 {
+			let mut assumed_live =
+				if gold_shell_count > 0 {
+					true
+				} else if lives_count == 0 {
 					false
 				} else if blanks_count == 0 {
 					true
@@ -333,10 +367,23 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 					println!("House uses Magnifying Glass.");
 					utils::wait_and_clear();
 					house.items.remove(magnifying_glass_index);
-					*game_data.buckshot.last().unwrap_or_else(|| panic!("The buckshot is empty."))
+					#[allow(clippy::expect_used)]
+					*game_data.buckshot.last().expect("The buckshot is empty.")
 				} else {
-					rand::thread_rng().gen::<f32>() < lives_count as f32 / game_data.buckshot.len() as f32
+					let live_percent = lives_count as f32 / game_data.buckshot.len() as f32;
+					rand::thread_rng().gen::<f32>() < live_percent
 				};
+			
+			
+			// use inverter
+			if !assumed_live && let Some((i, _)) = house.items.iter().enumerate().find(|(_, item)| **item == Item::Inverter) {
+				println!("House uses Inverter.");
+				#[allow(clippy::expect_used)]
+				let last = game_data.buckshot.last_mut().expect("The buckshot is empty.");
+				*last = !*last;
+				assumed_live = !assumed_live;
+				house.items.remove(i);
+			}
 			
 			
 			// use barrel extension
@@ -368,7 +415,8 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 				// shoot
 				println!("House points the buckshot at {}.", player_to_shoot.name);
 				utils::wait_and_clear();
-				let is_live = game_data.buckshot.pop().unwrap_or_else(|| panic!("The buckshot is empty."));
+				#[allow(clippy::expect_used)]
+				let is_live = game_data.buckshot.pop().expect("The buckshot is empty.");
 				if is_live {
 					println!("The buckshot shoots.");
 					let damage = if game_data.has_barrel_extension {2} else {1};
@@ -384,6 +432,7 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 					println!("The buckshot clicks.");
 				}
 				utils::wait_and_clear();
+				reload_buckshot_if_needed(&mut game_data.buckshot, stage_num);
 				game_data.players[0].credits += settings::credit_per_shot_for_stage(stage_num);
 				game_data.has_barrel_extension = false;
 				
@@ -393,7 +442,8 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 				// shoot self
 				println!("House points the buckshot at itself.");
 				utils::wait_and_clear();
-				let is_live = game_data.buckshot.pop().unwrap_or_else(|| panic!("The buckshot is empty."));
+				#[allow(clippy::expect_used)]
+				let is_live = game_data.buckshot.pop().expect("The buckshot is empty.");
 				if is_live {
 					println!("The buckshot shoots.");
 					let damage = if game_data.has_barrel_extension {2} else {1};
@@ -575,19 +625,21 @@ pub type ShotEndsTurn = bool;
 pub fn shoot(game_data: &mut GameData, stage_num: usize) -> ShotEndsTurn {
 	utils::clear();
 	let player_names =
-		game_data.players.iter()
-		.filter_map(|p| utils::some_if(&p.name, p.lives > 0))
+		game_data.players.iter().enumerate()
+		.filter_map(|(i, player)| {
+			if player.lives == 0 {return None;}
+			Some(OptionWithData {display_name: player.name.to_string(), data: i})
+		})
 		.collect::<Vec<_>>();
-	let to_shoot = prompt!("Who do you want to shoot?"; player_names);
-	#[allow(clippy::unwrap_used)] // because to_shoot comes from players
-	let to_shoot_index = game_data.index_of_player(to_shoot).unwrap();
+	let OptionWithData {display_name: to_shoot, data: to_shoot_index} = prompt!("Who do you want to shoot?"; player_names);
 	let confirm = prompt!(format!("Are you sure you want to shoot {to_shoot}? "); YesNoInput);
 	if !confirm {return false;}
 	println!();
 	utils::clear();
 	println!("You point the buckshot at {to_shoot}.");
 	utils::wait_and_clear();
-	let is_live = game_data.buckshot.pop().unwrap_or_else(|| panic!("The buckshot is empty."));
+	#[allow(clippy::expect_used)]
+	let is_live = game_data.buckshot.pop().expect("The buckshot is empty.");
 	let credits = settings::credit_per_shot_for_stage(stage_num);
 	let mut shot_ends_turn;
 	if is_live {
@@ -622,9 +674,9 @@ pub fn shoot(game_data: &mut GameData, stage_num: usize) -> ShotEndsTurn {
 
 
 
-pub type PoppedLastShell = bool;
+pub type ItemEndedTurn = bool;
 
-pub fn use_item(game_data: &mut GameData, stage_num: usize) -> PoppedLastShell {
+pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 	if game_data.get_player().items.is_empty() {
 		println!();
 		println!("You do not have any items to use.");
@@ -649,10 +701,37 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> PoppedLastShell {
 			utils::wait_and_clear();
 		}
 		
+		Item::ExpiredMedicine => {
+			let player = game_data.get_player_mut();
+			let mut prompt = String::from("Are you sure you want to use this item? ");
+			let max_lives = settings::lives_for_stage(stage_num);
+			if player.lives == max_lives {prompt += "You are already at max lives. ";}
+			let confirm = prompt!(prompt; YesNoInput);
+			if !confirm {return false;}
+			println!("You used Expired Medicine.");
+			utils::wait();
+			let gives_lives = rand::thread_rng().gen::<f32>() < 0.4;
+			if gives_lives {
+				let new_lives = 2.min(max_lives - player.lives);
+				println!("+{new_lives} {}.", utils::pluralize(new_lives as f32, "life", "lives"));
+				player.lives += new_lives;
+			} else {
+				println!("-1 life.");
+				player.lives -= 1;
+				if player.lives == 0 {
+					println!("You have run out of lives.");
+					utils::wait_and_clear();
+					return true;
+				}
+			}
+			utils::wait_and_clear();
+		}
+		
 		Item::MagnifyingGlass => {
 			let confirm = prompt!("Are you sure you want to this item? "; YesNoInput);
 			if !confirm {return false;}
-			if *game_data.buckshot.last().unwrap_or_else(|| panic!("The buckshot is empty.")) {
+			#[allow(clippy::expect_used)]
+			if *game_data.buckshot.last().expect("The buckshot is empty.") {
 				println!("The next shell is live.");
 			} else {
 				println!("The next shell is blank.");
@@ -665,7 +744,8 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> PoppedLastShell {
 			if game_data.buckshot.len() == 1 {prompt += "This is the last round, popping it will end your turn. ";}
 			let confirm = prompt!(prompt; YesNoInput);
 			if !confirm {return false;}
-			if game_data.buckshot.pop().unwrap_or_else(|| panic!("The buckshot is empty.")) {
+			#[allow(clippy::expect_used)]
+			if game_data.buckshot.pop().expect("The buckshot is empty.") {
 				println!("You popped a live shell.");
 			} else {
 				println!("You popped a blank shell.");
@@ -696,18 +776,20 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> PoppedLastShell {
 		Item::Handcuffs => {
 			let curr_player_name = &game_data.get_player().name;
 			let player_names =
-				game_data.players.iter()
-				.filter(|p| p.lives > 0 && &p.name != curr_player_name && p.handcuffed_level == HandcuffedLevel::Uncuffed)
-				.map(|p| &p.name)
+				game_data.players.iter().enumerate()
+				.filter_map(|(i, player)| {
+					if player.lives == 0 {return None;}
+					if &player.name == curr_player_name {return None;}
+					if player.handcuffed_level != HandcuffedLevel::Uncuffed {return None;}
+					Some(OptionWithData {display_name: player.name.to_string(), data: i})
+				})
 				.collect::<Vec<_>>();
 			if player_names.is_empty() {
 				println!("There are no players that can be handcuffed.");
 				utils::wait_and_clear();
 				return false;
 			}
-			let to_handcuff = prompt!("Who do you want to handcuff? "; player_names);
-			#[allow(clippy::unwrap_used)] // because to_handcuff comes from players
-			let to_handcuff_index = game_data.index_of_player(to_handcuff).unwrap();
+			let OptionWithData {display_name: to_handcuff, data: to_handcuff_index} = prompt!("Who do you want to handcuff? "; player_names);
 			let confirm = prompt!(format!("Are you sure you want to handcuff {to_handcuff}? "); YesNoInput);
 			if !confirm {return false;}
 			let to_handcuff_player = &mut game_data.players[to_handcuff_index];
@@ -743,6 +825,24 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> PoppedLastShell {
 			utils::wait_and_clear();
 		}
 		
+		Item::GoldShell => {
+			let confirm = prompt!("Are you sure you want to this item? "; YesNoInput);
+			if !confirm {return false;}
+			game_data.buckshot.push(true);
+			println!("You used added the shell.");
+			utils::wait_and_clear();
+		}
+		
+		Item::Inverter => {
+			let confirm = prompt!("Are you sure you want to this item? "; YesNoInput);
+			if !confirm {return false;}
+			#[allow(clippy::expect_used)]
+			let last = game_data.buckshot.last_mut().expect("The buckshot is empty.");
+			*last = !*last;
+			println!("It has been done.");
+			utils::wait_and_clear();
+		}
+		
 	}
 	game_data.get_player_mut().items.remove(to_use_index);
 	popped_last_shell
@@ -754,55 +854,63 @@ pub fn trade(game_data: &mut GameData, can_trade: &mut bool) {
 	
 	let curr_player_name = &game_data.get_player().name;
 	let player_names =
-		game_data.players.iter()
-		.filter_map(|p| utils::some_if(&p.name, p.lives > 0 && &p.name != curr_player_name))
+		game_data.players.iter().enumerate()
+		.filter_map(|(i, player)| {
+			if player.lives == 0 {return None;}
+			if &player.name == curr_player_name {return None;}
+			Some(OptionWithData {display_name: player.name.to_string(), data: i})
+		})
 		.collect::<Vec<_>>();
-	let other_player_name = prompt!("Who do you want to trade with? "; player_names);
-	#[allow(clippy::unwrap_used)] // because other_player_name comes from players
-	let other_player = game_data.index_of_player(other_player_name).unwrap();
-	let mut curr_player_items = vec!();
-	let mut other_player_items = vec!();
+	let OptionWithData {display_name: _, data: other_player} = prompt!("Who do you want to trade with? "; player_names);
+	let mut curr_trading_items = vec![false; game_data.get_player().items.len()];
+	let mut other_trading_items = vec![false; game_data.players[other_player].items.len()];
 	
 	loop {
 		
 		utils::clear();
 		println!("Your items:");
-		for item in &game_data.get_player().items {
-			println!("{item}");
+		for (i, (item, is_trading)) in game_data.get_player().items.iter().zip(&curr_trading_items).enumerate() {
+			if *is_trading {
+				println!("{}: [{item}]", i + 1);
+			} else {
+				println!("{}:  {item} ", i + 1);
+			}
 		}
+		println!();
+		println!();
 		println!();
 		println!("Other's items:");
-		for item in &game_data.players[other_player].items {
-			println!("{item}");
+		for (i, (item, is_trading)) in game_data.players[other_player].items.iter().zip(&other_trading_items).enumerate() {
+			if *is_trading {
+				println!("{}: [{item}]", i + 1);
+			} else {
+				println!("{}:  {item} ", i + 1);
+			}
 		}
 		println!();
-		println!("You're trading:");
-		for item in &curr_player_items {
-			println!("{item}");
-		}
 		println!();
-		println!("Other is trading:");
-		for item in &other_player_items {
-			println!("{item}");
-		}
 		println!();
 		println!("Commands:");
 		println!("Finalize");
 		println!("Cancel");
-		println!("[add / remove] [my / other] [item name]  (example: \"remove my live shell\")");
-		let input = read!().trim().to_lowercase();
+		println!("Toggle [my / other] #[item index]  (example: \"toggle my #2\")");
+		let input = read!(NonWhitespaceInput).trim().to_lowercase();
 		
 		// finalize
 		if input == "f" || input == "finalize" {
-			let trade_was_accepted = prompt_accept_trade(game_data, game_data.curr_player, &curr_player_items, &other_player_items);
+			let trade_was_accepted = prompt_accept_trade(game_data, game_data.curr_player, other_player, &curr_trading_items, &other_trading_items);
 			if !trade_was_accepted {return;}
-			let trade_was_accepted = prompt_accept_trade(game_data, other_player, &other_player_items, &curr_player_items);
+			let trade_was_accepted = prompt_accept_trade(game_data, other_player, game_data.curr_player, &other_trading_items, &curr_trading_items);
 			if !trade_was_accepted {return;}
-			for item in curr_player_items {
-				game_data.players[other_player].items.push(item);
+			for (i, is_trading) in curr_trading_items.iter().enumerate().rev() {
+				if !is_trading {continue;}
+				let item_to_move = game_data.get_player_mut().items.remove(i);
+				game_data.players[other_player].items.push(item_to_move);
 			}
-			for item in other_player_items {
-				game_data.get_player_mut().items.push(item);
+			for (i, is_trading) in other_trading_items.iter().enumerate().rev() {
+				if !is_trading {continue;}
+				let item_to_move = game_data.players[other_player].items.remove(i);
+				game_data.get_player_mut().items.push(item_to_move);
 			}
 			println!("The trade was successful.");
 			*can_trade = false;
@@ -812,114 +920,98 @@ pub fn trade(game_data: &mut GameData, can_trade: &mut bool) {
 		
 		// cancel
 		if input == "c" || input == "cancel" {
-			let confirm = prompt!("Are you sure you want to cancel"; YesNoInput);
+			let confirm = prompt!("Are you sure you want to cancel? "; YesNoInput);
 			if !confirm {continue;}
 			println!("Trade has been canceled.");
 			return;
 		}
 		
-		// add / remove
+		// toggle
 		let input_parts = input.split(' ').collect::<Vec<_>>();
-		if input_parts.len() < 3 {
-			println!("Could not understand input, did not match \"finalize\", \"cancel\", or 3+ tokens");
-			utils::wait();
-			continue;
-		}
-		let is_add = match input_parts[0] {
-			"add" | "a" => true,
-			"remove" | "r" => false,
-			_ => {
-				println!("Could not understand input, first token did not match \"finalize\", \"cancel\", \"add\", or \"remove\"");
+		if input_parts[0] == "t" || input_parts[0] == "toggle" {
+			if input_parts.len() != 3 {
+				println!("Could not understand input, must be exactly 3 tokens.");
 				utils::wait();
 				continue;
 			}
-		};
-		let is_mine = match input_parts[1] {
-			"my" | "m" => true,
-			"other" | "o" => false,
-			_ => {
-				println!("Could not understand input, second token did not match \"my\" or \"other\"");
-				utils::wait();
+			let trading_items = match input_parts[1] {
+				"my" | "m" => &mut curr_trading_items,
+				"other" | "o" => &mut other_trading_items,
+				_ => {
+					println!("Could not understand input, second token did not match \"my\" or \"other\".");
+					utils::wait();
+					continue;
+				}
+			};
+			let mut index_token = input_parts[2];
+			if index_token.starts_with("#") {
+				index_token = &index_token[1..];
+			}
+			let index = match index_token.parse::<usize>() {
+				std::result::Result::Ok(v) => v,
+				std::result::Result::Err(err) => {
+					println!("Could parse input third token: {err}");
+					utils::wait_and_clear();
+					continue;
+				}
+			};
+			let index = index - 1;
+			if index >= trading_items.len() {
+				println!("Cannot toggle index, it is too high.");
+				utils::wait_and_clear();
 				continue;
 			}
-		};
-		let Some(item_to_move) = Item::from_strs(&input_parts[2..]) else {
-			println!("Could not understand input, unknown item");
-			utils::wait();
-			continue;
-		};
-		let (from, to) = match (is_add, is_mine) {
-			(true, true) => (&mut game_data.get_player_mut().items, &mut curr_player_items),
-			(true, false) => (&mut game_data.players[other_player].items, &mut other_player_items),
-			(false, true) => (&mut curr_player_items, &mut game_data.get_player_mut().items),
-			(false, false) => (&mut other_player_items, &mut game_data.players[other_player].items),
-		};
-		let mut removed = false;
-		for i in 0..from.len() {
-			if from[i] != item_to_move {continue;}
-			from.remove(i);
-			removed = true;
-			break;
-		}
-		if !removed {
-			println!("Could not find item {item_to_move} in list.");
-			utils::wait();
+			trading_items[index] = !trading_items[index];
 			continue;
 		}
-		to.push(item_to_move);
+		
+		println!("Could not understand input.");
+		utils::wait_and_clear();
 		
 	}
 	
-}
-
-
-
-pub type DidTrade = bool;
-
-pub fn finalize_trade(game_data: &mut GameData, other_player: usize, curr_player_trading_items: &[Item], other_player_trading_items: &[Item]) -> DidTrade {
-	
-	let trade_was_accepted = prompt_accept_trade(game_data, game_data.curr_player, curr_player_trading_items, other_player_trading_items);
-	if !trade_was_accepted {return false;}
-	let trade_was_accepted = prompt_accept_trade(game_data, other_player, other_player_trading_items, curr_player_trading_items);
-	if !trade_was_accepted {return false;}
-	
-	let curr_player_items = &mut game_data.get_player_mut().items;
-	for &item in curr_player_trading_items {
-		for i in 0..curr_player_items.len() {
-			if curr_player_items[i] != item {continue;}
-			curr_player_items.remove(i);
-			break;
-		}
-	}
-	
-	let other_player_items = &mut game_data.players[other_player].items;
-	for &item in other_player_trading_items {
-		for i in 0..other_player_items.len() {
-			if other_player_items[i] != item {continue;}
-			other_player_items.remove(i);
-			break;
-		}
-	}
-	
-	true
 }
 
 
 
 pub type TradeWasAccepted = bool;
 
-pub fn prompt_accept_trade(game_data: &GameData, curr_player: usize, curr_player_trading_items: &[Item], other_player_trading_items: &[Item]) -> TradeWasAccepted {
-	
+pub fn prompt_accept_trade(game_data: &GameData, curr_player: usize, other_player: usize, curr_player_trading_items: &[bool], other_player_trading_items: &[bool]) -> TradeWasAccepted {
 	utils::clear();
+	
+	if &*game_data.players[curr_player].name == "House" {
+		let curr_items_value = curr_player_trading_items.iter().enumerate().fold(0., |acc, (i, is_trading)| {
+			if !*is_trading {return 0.;}
+			let item = game_data.players[0].items[i];
+			acc + 1. / settings::get_item_rarity(item)
+		});
+		let other_items_value = other_player_trading_items.iter().enumerate().fold(0., |acc, (i, is_trading)| {
+			if !*is_trading {return 0.;}
+			let item = game_data.players[other_player].items[i];
+			acc + 1. / settings::get_item_rarity(item)
+		});
+		if other_items_value > curr_items_value * 0.95 {
+			println!("House accepts.");
+			utils::wait_and_clear();
+			return true;
+		} else {
+			println!("House does not accept.");
+			utils::wait_and_clear();
+			return false;
+		}
+	}
+	
 	println!("Addressing {}:", game_data.players[curr_player].name);
 	println!();
 	println!("You're trading:");
-	for item in curr_player_trading_items {
+	for (item, is_trading) in game_data.players[curr_player].items.iter().zip(curr_player_trading_items.iter()) {
+		if !*is_trading {continue;}
 		println!("{item}");
 	}
 	println!();
 	println!("Other is trading:");
-	for item in other_player_trading_items {
+	for (item, is_trading) in game_data.players[other_player].items.iter().zip(other_player_trading_items.iter()) {
+		if !*is_trading {continue;}
 		println!("{item}");
 	}
 	println!();
