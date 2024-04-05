@@ -26,6 +26,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clearscreen",
+ "lazy_static",
  "rand",
  "smart-read",
 ]
@@ -110,6 +111,12 @@ checksum = "e3d1354bf6b7235cb4a0576c2619fd4ed18183f689b12b006a0ee7329eeff9a5"
 dependencies = [
  "windows-sys",
 ]
+
+[[package]]
+name = "lazy_static"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
@@ -306,9 +313,9 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 
 [[package]]
 name = "smart-read"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea426315e4f833829db626a2673133a2e723fd6b2d82fa002aa98c19207bc374"
+checksum = "0e1f4a46d6af4ada49154df67af553a301bbda8f36524ba083122c71dae3bb84"
 
 [[package]]
 name = "syn"

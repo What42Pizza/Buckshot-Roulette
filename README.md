@@ -43,7 +43,7 @@ Unknown Ticket (rare): Restarts turn (can only be used once per round; only used
 Live Shell (common): Adds a live to the buckshot (in a random position)
 Blank Shell (uncommon): Adds a blank to the buckshot (in a random position)
 Gold Shell (rare): Adds a live to the top of the buckshot
-Inverter (uncommon): Swaps the current round with its opposite
+Inverter (uncommon): Swaps the current round with its opposite. If the number of lives and blanks is usually shown, it must be hidden after inverter use unitl buckshot is reloaded
 
 
 Common: 1x multiplier

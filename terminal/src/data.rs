@@ -8,6 +8,7 @@ pub struct GameData {
 	pub curr_player: usize,
 	pub buckshot: Vec<bool>,
 	pub has_barrel_extension: bool,
+	pub inverter_used: bool,
 }
 
 impl GameData {
