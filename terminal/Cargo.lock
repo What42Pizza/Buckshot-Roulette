@@ -313,9 +313,9 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 
 [[package]]
 name = "smart-read"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e1f4a46d6af4ada49154df67af553a301bbda8f36524ba083122c71dae3bb84"
+checksum = "1791d0601e4a034a09c9b87839e75a8beed78469f5a705c275ff6789a2b0bcb5"
 
 [[package]]
 name = "syn"

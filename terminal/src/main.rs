@@ -1,5 +1,5 @@
 // Started:      24/01/24
-// Last updated: 24/04/04
+// Last updated: 24/04/06
 
 
 
@@ -7,6 +7,7 @@
 
 #![allow(clippy::new_without_default)]
 #![warn(clippy::todo, clippy::unwrap_used, clippy::expect_used)]
+//#![warn(unsafe_code)] // to quickly see where any unsafe code is
 
 
 
@@ -23,7 +24,7 @@ pub mod settings {
 		(stage_num + 1) * 2
 	}
 	pub fn buckshot_reload_data(stage_num: usize) -> (usize, usize, f32, f32) {
-		(stage_num * 2, (stage_num * 4).min(8), 0.33, 0.66)
+		(stage_num * 2, (stage_num * 4).min(8), 0.4, 0.6)
 	}
 	pub fn credit_per_shot_for_stage(stage_num: usize) -> usize {
 		stage_num
@@ -35,6 +36,7 @@ pub mod settings {
 	pub const ITEM_CHANCE_COMMON: f32   = 1.0;
 	pub const ITEM_CHANCE_UNCOMMON: f32 = 0.6;
 	pub const ITEM_CHANCE_RARE: f32     = 0.3;
+	pub const ITEM_CHANCE_DISABLED: f32 = 0.0;
 	pub fn get_item_rarity(item: Item) -> f32 {
 		match item {
 			Item::Cigarettes      => ITEM_CHANCE_UNCOMMON,
@@ -68,7 +70,7 @@ pub mod prelude {
 	pub use smart_read::prelude::*;
 }
 
-use std::{fs::File, sync::Mutex};
+use std::{collections::HashMap, fs::{File, OpenOptions}, io::{self, Read, Seek, Write}, result::Result as StdResult, sync::Mutex};
 
 use crate::prelude::*;
 use rand::prelude::SliceRandom;
@@ -76,6 +78,8 @@ use rand::prelude::SliceRandom;
 
 
 fn main() {
+	
+	
 	
 	let player_count = prompt!("How many players? (must be 2 or more) "; 2..);
 	log!("Player count: {player_count}");
@@ -92,6 +96,8 @@ fn main() {
 	}
 	utils::clear();
 	
+	
+	
 	let mut game_data = GameData {
 		players,
 		curr_player: 0,
@@ -104,6 +110,8 @@ fn main() {
 	play_stage(&mut game_data, 2);
 	play_stage(&mut game_data, 3);
 	
+	
+	
 	game_data.players.sort_by(|a, b| a.credits.cmp(&b.credits));
 	#[allow(clippy::unwrap_used)] // because players will never be empty
 	let winner = game_data.players.last().unwrap();
@@ -113,10 +121,20 @@ fn main() {
 	println!("Player {} has won with {} {}", winner.name, winner.credits, utils::pluralize(winner.credits as f32, "credit", "credits"));
 	
 	println!();
-	println!("Final credits:");
+	println_log!("Final credits:");
 	for player in game_data.players.iter().rev() {
-		println!("{}: {}", player.name, player.credits);
+		println_log!("{}: {}", player.name, player.credits);
 	}
+	
+	println!();
+	println!();
+	println!();
+	let result = do_total_credits(&game_data.players);
+	if let Err(err) = result {
+		println_log!("Soft error while updating total credits: {err}");
+	}
+	
+	
 	
 }
 
@@ -132,7 +150,7 @@ pub fn get_names_and_passwords(players: &mut [Player]) {
 				let input = input.trim();
 				if input.is_empty() {return Err(String::from("Invalid input, cannot be empty."));}
 				if &*input.to_lowercase() == "house" {return Err(String::from("Invalid input, cannot name self \"House\"."))}
-				std::result::Result::Ok(())
+				StdResult::Ok(())
 			}));
 			for player in players.iter().take(i) {
 				if player.name == new_name {
@@ -155,6 +173,82 @@ pub fn get_names_and_passwords(players: &mut [Player]) {
 		
 		log!("Name: {}, Password: {:?}", &player.name, &player.password);
 	}
+}
+
+
+
+pub fn do_total_credits(players: &[Player]) -> Result<()> {
+	
+	log!("Reading total_credits.txt...");
+	
+	let mut total_credits_file =
+		OpenOptions::new()
+		.read(true)
+		.write(true)
+		.create(true)
+		.open("total_credits.txt")?;
+	
+	let mut total_credits_string = String::new();
+	total_credits_file.read_to_string(&mut total_credits_string)?;
+	
+	let mut credits_per_player = HashMap::new();
+	for (i, line) in total_credits_string.lines().enumerate() {
+		let line = line.trim();
+		if line.is_empty() {continue;}
+		let Some(colon_index) = line.find(':') else {
+			return Err(Error::msg(format!("Could not find colon char on line {}", i + 1)));
+		};
+		let player_name = line[..colon_index].trim().to_string();
+		let player_credits = match line[colon_index + 1 ..].trim().parse::<usize>() {
+			StdResult::Ok(v) => v,
+			StdResult::Err(err) => return Err(Error::msg(format!("Could not parse credits value on line {} (error: {err})", i + 1))),
+		};
+		credits_per_player.insert(player_name, player_credits);
+	}
+	
+	for player in players {
+		if let Some(existing_credits) = credits_per_player.get_mut(&player.name) {
+			*existing_credits += player.credits;
+		} else {
+			credits_per_player.insert(player.name.clone(), player.credits);
+		}
+	}
+	
+	let mut new_total_credits =
+		credits_per_player.into_iter()
+		.map(|(mut name, credits)| {
+			make_first_char_uppercase(&mut name);
+			(name, credits)
+		})
+		.collect::<Vec<_>>();
+	new_total_credits.sort_by(|(_, a), (_, b)| a.cmp(&b));
+	
+	println_log!("Total credits per player:");
+	for (player, credits) in new_total_credits.iter().rev() {
+		println_log!("{player}: {credits}");
+	}
+	
+	log!("Updating total_credits.txt...");
+	
+	total_credits_file.rewind()?;
+	for (player, credits) in new_total_credits.iter().rev() {
+		total_credits_file.write_all(format!("{player}: {credits}\n").as_bytes())?;
+	}
+	let file_len = total_credits_file.seek(io::SeekFrom::Current(0))?;
+	total_credits_file.set_len(file_len)?;
+	total_credits_file.flush()?;
+	
+	Ok(())
+}
+
+
+
+pub fn make_first_char_uppercase(input: &mut String) {
+	if input.is_empty() {return;}
+	let first_byte = unsafe {&mut input.as_bytes_mut()[0]};
+	let first_char = *first_byte as char;
+	if !first_char.is_ascii_alphabetic() {return;}
+	*first_byte = first_char.to_ascii_uppercase() as u8;
 }
 
 
@@ -267,6 +361,10 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 		// use cigarettes, magazine, handcuffs
 		let mut lives_count = game_data.buckshot.iter().filter(|x| **x).count();
 		let mut blanks_count = game_data.buckshot.len() - lives_count;
+		if game_data.inverter_used {
+			lives_count = 1000;
+			blanks_count = 1000;
+		}
 		for i in (0..house.items.len()).rev() {
 			let house = &mut game_data.players[0];
 			match house.items[i] {
@@ -375,6 +473,8 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 					house.items.remove(magnifying_glass_index);
 					#[allow(clippy::expect_used)]
 					*game_data.buckshot.last().expect("The buckshot is empty.")
+				} else if house.lives == 1 {
+					true
 				} else {
 					let live_percent = lives_count as f32 / game_data.buckshot.len() as f32;
 					rand::thread_rng().gen::<f32>() < live_percent
@@ -443,6 +543,8 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 				reload_buckshot_if_needed(game_data, stage_num);
 				game_data.players[0].credits += settings::credit_per_shot_for_stage(stage_num);
 				game_data.has_barrel_extension = false;
+				
+				if game_data.count_alive_players() == 1 {return;}
 				
 				break 'shoot;
 			} else {
@@ -574,6 +676,7 @@ pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
 				"shoot" => {
 					let shot_ends_turn = shoot(game_data, stage_num);
 					if shot_ends_turn {break;}
+					if game_data.count_alive_players() == 1 {return;}
 				},
 				"use item" => {
 					let popped_last_shell = use_item(game_data, stage_num);
@@ -976,8 +1079,8 @@ pub fn trade(game_data: &mut GameData, can_trade: &mut bool) {
 				index_token = &index_token[1..];
 			}
 			let index = match index_token.parse::<usize>() {
-				std::result::Result::Ok(v) => v,
-				std::result::Result::Err(err) => {
+				StdResult::Ok(v) => v,
+				StdResult::Err(err) => {
 					println!("Could parse input third token: {err}");
 					utils::wait_and_clear();
 					continue;
@@ -1099,10 +1202,10 @@ pub fn print_stats(game_data: &GameData) {
 
 
 lazy_static::lazy_static! {
-    static ref LOG_WRITER: Mutex<File> = {
-        let file = File::create("log.txt").expect("Failed to create log file.");
-        Mutex::new(file)
-    };
+	static ref LOG_WRITER: Mutex<File> = {
+		let file = File::create("log.txt").expect("Failed to create log file.");
+		Mutex::new(file)
+	};
 }
 
 #[macro_export]
