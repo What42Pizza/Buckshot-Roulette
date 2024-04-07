@@ -1,5 +1,5 @@
 // Started:      24/01/24
-// Last updated: 24/04/06
+// Last updated: 24/04/07
 
 
 
@@ -50,7 +50,7 @@ pub mod settings {
 			Item::LiveShell       => ITEM_CHANCE_COMMON  ,
 			Item::BlankShell      => ITEM_CHANCE_UNCOMMON,
 			Item::GoldShell       => ITEM_CHANCE_RARE    ,
-			Item::Inverter        => ITEM_CHANCE_UNCOMMON,
+			Item::Inverter        => ITEM_CHANCE_COMMON  ,
 		}
 	}
 	
@@ -103,7 +103,7 @@ fn main() {
 		curr_player: 0,
 		buckshot: vec!(),
 		has_barrel_extension: false,
-		inverter_used: false,
+		is_inverted: false,
 	};
 	
 	play_stage(&mut game_data, 1);
@@ -129,10 +129,15 @@ fn main() {
 	println!();
 	println!();
 	println!();
+	
 	let result = do_total_credits(&game_data.players);
 	if let Err(err) = result {
 		println_log!("Soft error while updating total credits: {err}");
 	}
+	
+	println!();
+	println!();
+	println!();
 	
 	
 	
@@ -265,12 +270,24 @@ pub fn play_stage(game_data: &mut GameData, stage_num: usize) {
 		player.lives = lives;
 	}
 	
+	game_data.players.shuffle(&mut rand::thread_rng());
+	game_data.curr_player = 0;
+	for player in &mut game_data.players {
+		player.handcuffed_level = HandcuffedLevel::Uncuffed;
+	}
+	utils::wait_and_clear();
+	
+	println!("Ordering for this stage:");
+	for player in &game_data.players {
+		println!("{}", player.name);
+	}
 	utils::wait_and_clear();
 	
 	let mut round_num = 1;
 	println_log!("Round {round_num}");
 	utils::wait_and_clear();
 	give_items(game_data, stage_num);
+	game_data.buckshot.clear();
 	reload_buckshot_if_needed(game_data, stage_num);
 	loop {
 		
@@ -334,7 +351,7 @@ pub fn give_items(game_data: &mut GameData, stage_num: usize) {
 
 pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 	'turn: loop {
-		let house = &mut game_data.players[0];
+		let house = &mut game_data.players[game_data.curr_player];
 		
 		println_log!("Starting House's turn.");
 		
@@ -359,14 +376,11 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 		
 		
 		// use cigarettes, magazine, handcuffs
-		let mut lives_count = game_data.buckshot.iter().filter(|x| **x).count();
-		let mut blanks_count = game_data.buckshot.len() - lives_count;
-		if game_data.inverter_used {
-			lives_count = 1000;
-			blanks_count = 1000;
-		}
+		let mut used_magazine = false;
+		let (mut lives_count, mut blanks_count) = game_data.count_known_shells();
+		let house = &mut game_data.players[game_data.curr_player];
 		for i in (0..house.items.len()).rev() {
-			let house = &mut game_data.players[0];
+			let house = &mut game_data.players[game_data.curr_player];
 			match house.items[i] {
 				
 				Item::Cigarettes if house.lives < settings::lives_for_stage(stage_num) => {
@@ -389,8 +403,12 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 				
 				Item::Handcuffs => {
 					let mut players_to_handcuff = 
-						game_data.players[1..].iter_mut()
-						.filter(|player| player.lives > 0 && player.handcuffed_level == HandcuffedLevel::Uncuffed)
+						game_data.players.iter_mut()
+						.filter(|player| 
+							&player.name != "House"
+							&& player.lives > 0
+							&& player.handcuffed_level == HandcuffedLevel::Uncuffed
+						)
 						.collect::<Vec<_>>();
 					if players_to_handcuff.is_empty() {continue;}
 					let player_to_handcuff_index = rand::thread_rng().gen_range(0..players_to_handcuff.len());
@@ -398,15 +416,16 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 					println_log!("House handcuffs {}.", players_to_handcuff[player_to_handcuff_index].name);
 				}
 				
-				Item::Magazine => {
+				Item::Magazine if !used_magazine => {
+					used_magazine = true;
 					game_data.buckshot.clear();
 					println_log!("House uses Magazine");
 					reload_buckshot_if_needed(game_data, stage_num);
-					game_data.players[0].items.remove(i);
+					game_data.players[game_data.curr_player].items.remove(i);
 					continue;
 				}
 				
-				Item::Beer if blanks_count > lives_count && (blanks_count + lives_count > 2) => {
+				Item::Beer if blanks_count >= lives_count && (blanks_count + lives_count > 1) => {
 					#[allow(clippy::expect_used)]
 					let popped_is_live = game_data.buckshot.pop().expect("The buckshot is empty.");
 					println_log!("House uses Beer, pops a {}.", if popped_is_live {"live"} else {"blank"});
@@ -414,10 +433,10 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 				
 				_ => continue,
 			}
-			game_data.players[0].items.remove(i);
+			game_data.players[game_data.curr_player].items.remove(i);
 			utils::wait_and_clear();
 		}
-		let house = &mut game_data.players[0];
+		let house = &mut game_data.players[game_data.curr_player];
 		
 		
 		// use shells
@@ -456,7 +475,7 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 		
 		
 		'shoot: loop {
-			let house = &mut game_data.players[0];
+			let house = &mut game_data.players[game_data.curr_player];
 			
 			
 			// decide if live & use magnifying glass
@@ -490,7 +509,7 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 				*last = !*last;
 				assumed_live = !assumed_live;
 				house.items.remove(i);
-				game_data.inverter_used = true;
+				game_data.is_inverted = !game_data.is_inverted;
 			}
 			
 			
@@ -503,13 +522,16 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 			}
 			
 			
+			game_data.is_inverted = false;
+			
 			if assumed_live {
 				
 				// decide who to shoot
 				let mut highest_lives = 0;
 				let players_to_shoot =
-					game_data.players[1..].iter_mut()
+					game_data.players.iter_mut()
 					.filter(|player| {
+						if &player.name == "House" {return false;}
 						highest_lives = highest_lives.max(player.lives);
 						player.lives > 0
 					})
@@ -541,7 +563,7 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 				}
 				utils::wait_and_clear();
 				reload_buckshot_if_needed(game_data, stage_num);
-				game_data.players[0].credits += settings::credit_per_shot_for_stage(stage_num);
+				game_data.players[game_data.curr_player].credits += settings::credit_per_shot_for_stage(stage_num);
 				game_data.has_barrel_extension = false;
 				
 				if game_data.count_alive_players() == 1 {return;}
@@ -572,7 +594,7 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 					println_log!("The buckshot clicks.");
 				}
 				utils::wait_and_clear();
-				game_data.players[0].credits += settings::credit_per_shot_for_stage(stage_num);
+				game_data.players[game_data.curr_player].credits += settings::credit_per_shot_for_stage(stage_num);
 				game_data.has_barrel_extension = false;
 				if game_data.buckshot.is_empty() {
 					reload_buckshot_if_needed(game_data, stage_num);
@@ -587,7 +609,7 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 		
 		
 		// use unknown ticket
-		let house = &mut game_data.players[0];
+		let house = &mut game_data.players[game_data.curr_player];
 		if let Some((unknown_ticket_index, _)) = house.items.iter().enumerate().find(|(_index, item)| **item == Item::UnknownTicket) {
 			println_log!("House uses unknown ticket");
 			house.items.remove(unknown_ticket_index);
@@ -642,7 +664,7 @@ pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
 	
 	// password check
 	utils::clear();
-	println_log!("Player {}'s turn.", player.name);
+	println!("Player {}'s turn.", player.name);
 	if let Some(password) = &player.password {
 		loop {
 			let input = prompt!("Enter your password: ");
@@ -681,6 +703,7 @@ pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
 				"use item" => {
 					let popped_last_shell = use_item(game_data, stage_num);
 					if popped_last_shell {break 'inner;}
+					if game_data.get_player().lives == 0 {return;}
 				}
 				"trade" => trade(game_data, &mut can_trade),
 				_ => unreachable!(),
@@ -688,11 +711,9 @@ pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
 		}
 		
 		// unknown ticket
-		let live_player_count = game_data.count_alive_players();
 		let player: &mut Player = game_data.get_player_mut();
 		if
 			can_use_unknown_ticket
-			&& live_player_count > 1
 			&& player.lives > 0
 			&& let Some((unknown_ticket_index, _item)) = player.items.iter().enumerate().find(|(_index, item)| **item == Item::UnknownTicket)
 		{
@@ -729,7 +750,7 @@ pub fn reload_buckshot_if_needed(game_data: &mut GameData, stage_num: usize) {
 	for _ in 0..live_count {buckshot.push(true);}
 	for _ in 0..blank_count {buckshot.push(false);}
 	buckshot.shuffle(&mut rng);
-	game_data.inverter_used = false;
+	game_data.is_inverted = false;
 	
 	println_log!("The buckshot is loaded with {live_count} {} and {blank_count} {}", utils::pluralize(live_count as f32, "live", "lives"), utils::pluralize(blank_count as f32, "blank", "blanks"));
 	log!("Buckshot contents: {buckshot:?}");
@@ -757,6 +778,7 @@ pub fn shoot(game_data: &mut GameData, stage_num: usize) -> ShotEndsTurn {
 	utils::clear();
 	println_log!("You point the buckshot at {to_shoot}.");
 	utils::wait_and_clear();
+	game_data.is_inverted = false;
 	#[allow(clippy::expect_used)]
 	let is_live = game_data.buckshot.pop().expect("The buckshot is empty.");
 	let credits = settings::credit_per_shot_for_stage(stage_num);
@@ -964,7 +986,7 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 			#[allow(clippy::expect_used)]
 			let last = game_data.buckshot.last_mut().expect("The buckshot is empty.");
 			*last = !*last;
-			game_data.inverter_used = true;
+			game_data.is_inverted = !game_data.is_inverted;
 			println!("It has been done.");
 			log!("Used inverter");
 			utils::wait_and_clear();
@@ -1113,7 +1135,7 @@ pub fn prompt_accept_trade(game_data: &GameData, curr_player: usize, other_playe
 	if &*game_data.players[curr_player].name == "House" {
 		let curr_items_value = curr_player_trading_items.iter().enumerate().fold(0., |acc, (i, is_trading)| {
 			if !*is_trading {return 0.;}
-			let item = game_data.players[0].items[i];
+			let item = game_data.players[game_data.curr_player].items[i];
 			acc + 1. / settings::get_item_rarity(item)
 		});
 		let other_items_value = other_player_trading_items.iter().enumerate().fold(0., |acc, (i, is_trading)| {
@@ -1174,17 +1196,13 @@ pub fn prompt_accept_trade(game_data: &GameData, curr_player: usize, other_playe
 
 
 pub fn print_stats(game_data: &GameData) {
-	if game_data.inverter_used {
-		println!("Buckshot contents are hidden.");
-	} else {
-		let lives = game_data.buckshot.iter().filter(|x| **x).count();
-		let blanks = game_data.buckshot.len() - lives;
-		match (lives > 0, blanks > 0) {
-			(true, true) => println!("The buckshot contains {} {} and {} {}", lives, utils::pluralize(lives as f32, "live", "lives"), blanks, utils::pluralize(blanks as f32, "blank", "blanks")),
-			(true, false) => println!("The buckshot contains {} {}", lives, utils::pluralize(lives as f32, "live", "lives")),
-			(false, true) => println!("The buckshot contains {} {}", blanks, utils::pluralize(blanks as f32, "blank", "blanks")),
-			(false, false) => panic!("The buckshot is empty."),
-		}
+	let (lives, blanks) = game_data.count_known_shells();
+	let inverted_str = if game_data.is_inverted {" (NOTE: inverter used)"} else {""};
+	match (lives > 0, blanks > 0) {
+		(true, true) => println!("The buckshot contains {} {} and {} {} {inverted_str}", lives, utils::pluralize(lives as f32, "live", "lives"), blanks, utils::pluralize(blanks as f32, "blank", "blanks")),
+		(true, false) => println!("The buckshot contains {} {} {inverted_str}", lives, utils::pluralize(lives as f32, "live", "lives")),
+		(false, true) => println!("The buckshot contains {} {} {inverted_str}", blanks, utils::pluralize(blanks as f32, "blank", "blanks")),
+		(false, false) => panic!("The buckshot is empty."),
 	}
 	for player in &game_data.players {
 		println!();

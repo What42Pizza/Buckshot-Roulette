@@ -8,7 +8,7 @@ pub struct GameData {
 	pub curr_player: usize,
 	pub buckshot: Vec<bool>,
 	pub has_barrel_extension: bool,
-	pub inverter_used: bool,
+	pub is_inverted: bool,
 }
 
 impl GameData {
@@ -20,6 +20,11 @@ impl GameData {
 	}
 	pub fn count_alive_players(&self) -> usize {
 		self.players.iter().filter(|p| p.lives > 0).count()
+	}
+	pub fn count_known_shells(&self) -> (usize, usize) {
+		let known_lives = self.buckshot.iter().rev().enumerate().filter(|(i, shell)| **shell ^ (self.is_inverted && *i == 0)).count();
+		let known_blanks = self.buckshot.len() - known_lives;
+		(known_lives, known_blanks)
 	}
 	pub fn index_of_player(&self, player_name: &str) -> Option<usize> {
 		self.players.iter().enumerate().find(|(_index, player)| &*player.name == player_name).map(|(index, _player)| index)

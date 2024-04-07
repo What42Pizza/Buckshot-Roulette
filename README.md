@@ -28,7 +28,7 @@ Every player now has 4 lives. The buckshot is loaded with 6-8 shells with an liv
 
 When a player's turn starts, they can use one or more items, trade, or shoot an active player (including themselves). If they shoot another player, their turn ends. If they shoot themselves with a blank, their turn continues (use item(s), shoot, or trade). If they shoot themselves with a live, their turn ends. If they shoot themselves with a blank and the buckshot is emptied, their turn ends.
 
-You can only trade once per turn, and all trades must be one item for another item. Each player can only be shot with a live once per round. Once that happens, they cannot be targeted. At the start of each stage, the buckshot is emptied and reloaded, all items are removed, and all handcuffs are removed. Players must always end their turns on a shot (live or blank, others or themselves).
+You can only trade once per turn. At the start of each stage, the list of players is shuffled, the buckshot is emptied and reloaded, all items are removed, and all handcuffs are removed. Players must always end their turns on a shot (live or blank, others or themselves).
 
 
 Items:
@@ -43,7 +43,7 @@ Unknown Ticket (rare): Restarts turn (can only be used once per round; only used
 Live Shell (common): Adds a live to the buckshot (in a random position)
 Blank Shell (uncommon): Adds a blank to the buckshot (in a random position)
 Gold Shell (rare): Adds a live to the top of the buckshot
-Inverter (uncommon): Swaps the current round with its opposite. If the number of lives and blanks is usually shown, it must be hidden after inverter use unitl buckshot is reloaded
+Inverter (common): Swaps the current round with its opposite. If the number of lives and blanks is always shown, it must not change after inverter use
 
 
 Common: 1x multiplier
