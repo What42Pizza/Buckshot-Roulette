@@ -11,3 +11,9 @@ clearscreen = "2.0.1"
 lazy_static = "1.4.0"
 rand = "0.8.5"
 smart-read = "0.5.1"
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1
