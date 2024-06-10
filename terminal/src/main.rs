@@ -141,6 +141,8 @@ fn main() {
 	
 	
 	
+	prompt!("Game has ended, press enter to exit.");
+	
 }
 
 
