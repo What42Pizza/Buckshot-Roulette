@@ -7,10 +7,10 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.79"
-clearscreen = "2.0.1"
+clearscreen = "3.0.0"
 lazy_static = "1.4.0"
 rand = "0.8.5"
-smart-read = "0.5.1"
+smart-read = "0.6.2"
 
 [profile.release]
 strip = true

@@ -1,5 +1,5 @@
 // Started:      24/01/24
-// Last updated: 24/04/07
+// Last updated: 24/06/10
 
 
 
@@ -692,7 +692,7 @@ pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
 			print_stats(game_data);
 			println!();
 			let options: &[&str] = if can_trade {&["shoot", "use item", "trade"]} else {&["shoot", "use item"]};
-			let chosen_option = read!(options);
+			let chosen_option = *read!(options).1;
 			log!("Doing: {chosen_option}");
 			match chosen_option {
 				"shoot" => {
@@ -768,10 +768,11 @@ pub fn shoot(game_data: &mut GameData, stage_num: usize) -> ShotEndsTurn {
 		game_data.players.iter().enumerate()
 		.filter_map(|(i, player)| {
 			if player.lives == 0 {return None;}
-			Some(OptionWithData {display_name: player.name.to_string(), data: i})
+			Some(InputOption {display_name: player.name.to_string(), choose_names: vec!(), data: i})
 		})
 		.collect::<Vec<_>>();
-	let OptionWithData {display_name: to_shoot, data: to_shoot_index} = prompt!("Who do you want to shoot?"; player_names);
+	let player_names = &*player_names;
+	let InputOption {display_name: to_shoot, choose_names: _, data: to_shoot_index} = prompt!("Who do you want to shoot?"; player_names).1;
 	let confirm = prompt!(format!("Are you sure you want to shoot {to_shoot}? "); YesNoInput);
 	if !confirm {return false;}
 	println!();
@@ -786,19 +787,19 @@ pub fn shoot(game_data: &mut GameData, stage_num: usize) -> ShotEndsTurn {
 	if is_live {
 		println_log!("The buckshot shoots. You are given {credits} {}.", utils::pluralize(credits as f32, "credit", "credits"));
 		let damage = if game_data.has_barrel_extension {2} else {1};
-		if damage >= game_data.players[to_shoot_index].lives {
+		if damage >= game_data.players[*to_shoot_index].lives {
 			utils::wait_and_clear();
 			println_log!("{to_shoot} has lost all lives.");
-			let to_shoot_player = &mut game_data.players[to_shoot_index];
+			let to_shoot_player = &mut game_data.players[*to_shoot_index];
 			to_shoot_player.lives = 0;
 			to_shoot_player.items.clear();
 		} else {
-			game_data.players[to_shoot_index].lives -= damage;
+			game_data.players[*to_shoot_index].lives -= damage;
 		}
 		shot_ends_turn = true;
 	} else {
 		println_log!("The buckshot clicks. You are given {credits} {}.", utils::pluralize(credits as f32, "credit", "credits"));
-		shot_ends_turn = to_shoot_index != game_data.curr_player;
+		shot_ends_turn = *to_shoot_index != game_data.curr_player;
 	}
 	game_data.get_player_mut().credits += credits;
 	game_data.has_barrel_extension = false;
@@ -826,7 +827,8 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 	}
 	utils::clear();
 	println!("Which item do you want to use?");
-	let (to_use_index, to_use) = read!(EnumerateInput (&*game_data.get_player().items));
+	let items = &*game_data.get_player().items;
+	let (to_use_index, to_use) = read!(items);
 	let mut popped_last_shell = false;
 	match to_use {
 		
@@ -923,7 +925,7 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 					if player.lives == 0 {return None;}
 					if &player.name == curr_player_name {return None;}
 					if player.handcuffed_level != HandcuffedLevel::Uncuffed {return None;}
-					Some(OptionWithData {display_name: player.name.to_string(), data: i})
+					Some(InputOption {display_name: player.name.to_string(), choose_names: vec!(), data: i})
 				})
 				.collect::<Vec<_>>();
 			if player_names.is_empty() {
@@ -931,10 +933,11 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 				utils::wait_and_clear();
 				return false;
 			}
-			let OptionWithData {display_name: to_handcuff, data: to_handcuff_index} = prompt!("Who do you want to handcuff? "; player_names);
+			let player_names = &*player_names;
+			let InputOption {display_name: to_handcuff, choose_names: _, data: to_handcuff_index} = prompt!("Who do you want to handcuff? "; player_names).1;
 			let confirm = prompt!(format!("Are you sure you want to handcuff {to_handcuff}? "); YesNoInput);
 			if !confirm {return false;}
-			let to_handcuff_player = &mut game_data.players[to_handcuff_index];
+			let to_handcuff_player = &mut game_data.players[*to_handcuff_index];
 			log!("Handcuffing player {}", &to_handcuff_player.name);
 			if to_handcuff_player.handcuffed_level != HandcuffedLevel::Uncuffed {
 				println_log!("This player is already cuffed");
@@ -1007,13 +1010,14 @@ pub fn trade(game_data: &mut GameData, can_trade: &mut bool) {
 		.filter_map(|(i, player)| {
 			if player.lives == 0 {return None;}
 			if &player.name == curr_player_name {return None;}
-			Some(OptionWithData {display_name: player.name.to_string(), data: i})
+			Some(InputOption {display_name: player.name.to_string(), choose_names: vec!(), data: i})
 		})
 		.collect::<Vec<_>>();
-	let OptionWithData {display_name: other_player_name, data: other_player} = prompt!("Who do you want to trade with? "; player_names);
+	let player_names = &*player_names;
+	let InputOption {display_name: other_player_name, choose_names: _, data: other_player} = prompt!("Who do you want to trade with? "; player_names).1;
 	log!("Started trade with {other_player_name}");
 	let mut curr_trading_items = vec![false; game_data.get_player().items.len()];
-	let mut other_trading_items = vec![false; game_data.players[other_player].items.len()];
+	let mut other_trading_items = vec![false; game_data.players[*other_player].items.len()];
 	
 	loop {
 		
@@ -1030,7 +1034,7 @@ pub fn trade(game_data: &mut GameData, can_trade: &mut bool) {
 		println!();
 		println!();
 		println!("Other's items:");
-		for (i, (item, is_trading)) in game_data.players[other_player].items.iter().zip(&other_trading_items).enumerate() {
+		for (i, (item, is_trading)) in game_data.players[*other_player].items.iter().zip(&other_trading_items).enumerate() {
 			if *is_trading {
 				println!("{}: [{item}]", i + 1);
 			} else {
@@ -1048,20 +1052,20 @@ pub fn trade(game_data: &mut GameData, can_trade: &mut bool) {
 		
 		// finalize
 		if input == "f" || input == "finalize" {
-			let trade_was_accepted = prompt_accept_trade(game_data, game_data.curr_player, other_player, &curr_trading_items, &other_trading_items);
+			let trade_was_accepted = prompt_accept_trade(game_data, game_data.curr_player, *other_player, &curr_trading_items, &other_trading_items);
 			if !trade_was_accepted {return;}
-			let trade_was_accepted = prompt_accept_trade(game_data, other_player, game_data.curr_player, &other_trading_items, &curr_trading_items);
+			let trade_was_accepted = prompt_accept_trade(game_data, *other_player, game_data.curr_player, &other_trading_items, &curr_trading_items);
 			if !trade_was_accepted {return;}
 			log!("Finalizing trade...");
 			for (i, is_trading) in curr_trading_items.iter().enumerate().rev() {
 				if !is_trading {continue;}
 				let item_to_move = game_data.get_player_mut().items.remove(i);
 				log!("{item_to_move} from curr to other");
-				game_data.players[other_player].items.push(item_to_move);
+				game_data.players[*other_player].items.push(item_to_move);
 			}
 			for (i, is_trading) in other_trading_items.iter().enumerate().rev() {
 				if !is_trading {continue;}
-				let item_to_move = game_data.players[other_player].items.remove(i);
+				let item_to_move = game_data.players[*other_player].items.remove(i);
 				log!("{item_to_move} from other to curr");
 				game_data.get_player_mut().items.push(item_to_move);
 			}
