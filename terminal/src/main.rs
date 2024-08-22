@@ -1,5 +1,5 @@
 // Started:      24/01/24
-// Last updated: 24/06/10
+// Last updated: 24/08/22
 
 
 
@@ -34,8 +34,8 @@ pub mod settings {
 	}
 	
 	pub const ITEM_CHANCE_COMMON: f32   = 1.0;
-	pub const ITEM_CHANCE_UNCOMMON: f32 = 0.6;
-	pub const ITEM_CHANCE_RARE: f32     = 0.3;
+	pub const ITEM_CHANCE_UNCOMMON: f32 = 0.75;
+	pub const ITEM_CHANCE_RARE: f32     = 0.5;
 	pub const ITEM_CHANCE_DISABLED: f32 = 0.0;
 	pub fn get_item_rarity(item: Item) -> f32 {
 		match item {
@@ -87,7 +87,7 @@ fn main() {
 	get_names_and_passwords(&mut players);
 	utils::clear();
 	
-	let add_house = prompt!("Add House? "; YesNoInput);
+	let add_house = prompt!("Add House? "; [true] YesNoInput);
 	log!("Add House: {add_house}");
 	if add_house {
 		let mut house = Player::new();
@@ -693,21 +693,23 @@ pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
 			println!();
 			print_stats(game_data);
 			println!();
-			let options: &[&str] = if can_trade {&["shoot", "use item", "trade"]} else {&["shoot", "use item"]};
-			let chosen_option = *read!(options).1;
+			let mut options = vec!(InputOption::new("1", "shoot", vec!("s"), ()));
+			if !game_data.get_player().items.is_empty() {options.push(InputOption::new("2", "use item", vec!("u"), ()));}
+			if can_trade {options.push(InputOption::new("3", "trade", vec!("t"), ()));}
+			let chosen_option = read!(options).0;
 			log!("Doing: {chosen_option}");
 			match chosen_option {
-				"shoot" => {
+				0 => {
 					let shot_ends_turn = shoot(game_data, stage_num);
 					if shot_ends_turn {break;}
 					if game_data.count_alive_players() == 1 {return;}
 				},
-				"use item" => {
+				1 => {
 					let popped_last_shell = use_item(game_data, stage_num);
 					if popped_last_shell {break 'inner;}
 					if game_data.get_player().lives == 0 {return;}
 				}
-				"trade" => trade(game_data, &mut can_trade),
+				2 => trade(game_data, &mut can_trade),
 				_ => unreachable!(),
 			}
 		}
@@ -719,7 +721,7 @@ pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
 			&& player.lives > 0
 			&& let Some((unknown_ticket_index, _item)) = player.items.iter().enumerate().find(|(_index, item)| **item == Item::UnknownTicket)
 		{
-			let use_ticket = prompt!("Use unknown ticket? "; YesNoInput);
+			let use_ticket = prompt!("Use unknown ticket? "; [true] YesNoInput);
 			if use_ticket {
 				log!("Used unknown ticket");
 				can_use_unknown_ticket = false;
@@ -770,11 +772,11 @@ pub fn shoot(game_data: &mut GameData, stage_num: usize) -> ShotEndsTurn {
 		game_data.players.iter().enumerate()
 		.filter_map(|(i, player)| {
 			if player.lives == 0 {return None;}
-			Some(InputOption {display_name: player.name.to_string(), choose_names: vec!(), data: i})
+			Some(InputOption {bulletin_string: None, main_name: format!("{} ({})", player.name, player.lives), alt_names: vec!(), data: i})
 		})
 		.collect::<Vec<_>>();
-	let player_names = &*player_names;
-	let InputOption {display_name: to_shoot, choose_names: _, data: to_shoot_index} = prompt!("Who do you want to shoot?"; player_names).1;
+	let InputOption {data: to_shoot_index, ..} = prompt!("Who do you want to shoot?"; player_names).1;
+	let to_shoot = &*game_data.players[*to_shoot_index].name;
 	let confirm = prompt!(format!("Are you sure you want to shoot {to_shoot}? "); YesNoInput);
 	if !confirm {return false;}
 	println!();
@@ -829,18 +831,21 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 	}
 	utils::clear();
 	println!("Which item do you want to use?");
-	let items = &*game_data.get_player().items;
-	let (to_use_index, to_use) = read!(items);
+	let items =
+		game_data.get_player().items.iter().enumerate()
+		.map(|(i, item)| item.to_input_option(i))
+		.collect::<Vec<_>>();
+	let (to_use_index, InputOption {data: to_use, ..}) = read!(items);
 	let mut popped_last_shell = false;
 	match to_use {
 		
 		Item::Cigarettes => {
 			let player = game_data.get_player_mut();
-			let mut prompt = String::from("Are you sure you want to use this item? ");
 			let max_lives = settings::lives_for_stage(stage_num);
-			if player.lives == max_lives {prompt += "You are already at max lives. ";}
-			let confirm = prompt!(prompt; YesNoInput);
-			if !confirm {return false;}
+			if player.lives == max_lives {
+				let confirm = prompt!("You are already at max lives, are you sure you want to use this?"; YesNoInput);
+				if !confirm {return false;}
+			}
 			player.lives = (player.lives + 1).min(max_lives);
 			println_log!("You used cigarettes.");
 			utils::wait_and_clear();
@@ -904,7 +909,7 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 		
 		Item::BarrelExtension => {
 			if game_data.has_barrel_extension {println_log!("Barrel already has extension"); return false;}
-			let confirm = prompt!("Are you sure you want to this item? "; YesNoInput);
+			let confirm = prompt!("Are you sure you want to this item? "; [true] YesNoInput);
 			if !confirm {return false;}
 			game_data.has_barrel_extension = true;
 			println_log!("You used a barrel extension.");
@@ -927,7 +932,7 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 					if player.lives == 0 {return None;}
 					if &player.name == curr_player_name {return None;}
 					if player.handcuffed_level != HandcuffedLevel::Uncuffed {return None;}
-					Some(InputOption {display_name: player.name.to_string(), choose_names: vec!(), data: i})
+					Some(InputOption {bulletin_string: None, main_name: player.name.to_string(), alt_names: vec!(), data: i})
 				})
 				.collect::<Vec<_>>();
 			if player_names.is_empty() {
@@ -935,8 +940,7 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 				utils::wait_and_clear();
 				return false;
 			}
-			let player_names = &*player_names;
-			let InputOption {display_name: to_handcuff, choose_names: _, data: to_handcuff_index} = prompt!("Who do you want to handcuff? "; player_names).1;
+			let InputOption {main_name: to_handcuff, data: to_handcuff_index, ..} = prompt!("Who do you want to handcuff? "; player_names).1;
 			let confirm = prompt!(format!("Are you sure you want to handcuff {to_handcuff}? "); YesNoInput);
 			if !confirm {return false;}
 			let to_handcuff_player = &mut game_data.players[*to_handcuff_index];
@@ -1012,11 +1016,10 @@ pub fn trade(game_data: &mut GameData, can_trade: &mut bool) {
 		.filter_map(|(i, player)| {
 			if player.lives == 0 {return None;}
 			if &player.name == curr_player_name {return None;}
-			Some(InputOption {display_name: player.name.to_string(), choose_names: vec!(), data: i})
+			Some(InputOption {bulletin_string: None, main_name: player.name.to_string(), alt_names: vec!(), data: i})
 		})
 		.collect::<Vec<_>>();
-	let player_names = &*player_names;
-	let InputOption {display_name: other_player_name, choose_names: _, data: other_player} = prompt!("Who do you want to trade with? "; player_names).1;
+	let InputOption {main_name: other_player_name, data: other_player, ..} = prompt!("Who do you want to trade with? "; player_names).1;
 	log!("Started trade with {other_player_name}");
 	let mut curr_trading_items = vec![false; game_data.get_player().items.len()];
 	let mut other_trading_items = vec![false; game_data.players[*other_player].items.len()];
@@ -1210,15 +1213,16 @@ pub fn print_stats(game_data: &GameData) {
 		(false, true) => println!("The buckshot contains {} {} {inverted_str}", blanks, utils::pluralize(blanks as f32, "blank", "blanks")),
 		(false, false) => panic!("The buckshot is empty."),
 	}
-	for player in &game_data.players {
+	for (i, player) in game_data.players.iter().enumerate() {
 		println!();
-		println!("Player {}:", player.name);
-		println!("\tLives: {}", player.lives);
-		println!("\tCredits: {}", player.credits);
-		println!("\tIs handcuffed: {}", if player.handcuffed_level == HandcuffedLevel::Uncuffed {"false"} else {"true"});
-		println!("\tItems:");
+		println!("{}: {}", i + 1, player.name);
+		println!("\t- {} {}, {} {}, {}",
+			player.lives, utils::pluralize(player.lives as f32, "life", "lives"),
+			player.credits, utils::pluralize(player.credits as f32, "credit", "credits"),
+			if player.handcuffed_level == HandcuffedLevel::Uncuffed {"not handcuffed"} else {"handcuffed"},
+		);
 		for item in &player.items {
-			println!("\t\t{item}");
+			println!("\t{item}");
 		}
 	}
 }

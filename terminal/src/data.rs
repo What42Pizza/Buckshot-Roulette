@@ -113,22 +113,22 @@ impl Item {
 		}
 		unreachable!()
 	}
-	pub fn from_strs(input: &[&str]) -> Option<Self> {
-		Some(match *input {
-			["cigarettes"] => Self::Cigarettes,
-			["expired", "medicine"] => Self::ExpiredMedicine,
-			["magnifying", "glass"] => Self::MagnifyingGlass,
-			["beer"] => Self::Beer,
-			["barrel", "extension"] => Self::BarrelExtension,
-			["magazine"] => Self::Magazine,
-			["handcuffs"] => Self::Handcuffs,
-			["unknown", "ticket"] => Self::UnknownTicket,
-			["live", "shell"] => Self::LiveShell,
-			["blank", "shell"] => Self::BlankShell,
-			["gold", "shell"] => Self::GoldShell,
-			["inverter"] => Self::Inverter,
-			_ => return None,
-		})
+	pub fn to_input_option(&self, i: usize) -> InputOption<&Self> {
+		let alt_names = match self {
+			Self::Cigarettes => vec!("c", "cig"),
+			Self::ExpiredMedicine => vec!("e", "exp"),
+			Self::MagnifyingGlass => vec!("m", "magn"),
+			Self::Beer => vec!("ber"),
+			Self::BarrelExtension => vec!("bar"),
+			Self::Magazine => vec!("maga"),
+			Self::Handcuffs => vec!("h", "hand"),
+			Self::UnknownTicket => vec!("u", "unk"),
+			Self::LiveShell => vec!("l", "liv"),
+			Self::BlankShell => vec!("bla"),
+			Self::GoldShell => vec!("g", "gol"),
+			Self::Inverter => vec!("i", "inv"),
+		};
+		InputOption::new(i.to_string(), self.to_string(), alt_names, self)
 	}
 }
 
