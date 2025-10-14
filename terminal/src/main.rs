@@ -1,13 +1,11 @@
 // Started:      24/01/24
-// Last updated: 24/08/22
+// Last updated: 25/10/08
 
 
-
-#![feature(let_chains)]
 
 #![allow(clippy::new_without_default)]
 #![warn(clippy::todo, clippy::unwrap_used, clippy::expect_used)]
-//#![warn(unsafe_code)] // to quickly see where any unsafe code is
+// #![warn(unsafe_code)] // to quickly see where any unsafe code is
 
 
 
@@ -34,10 +32,10 @@ pub mod settings {
 	}
 	
 	pub const ITEM_CHANCE_COMMON: f32   = 1.0;
-	pub const ITEM_CHANCE_UNCOMMON: f32 = 0.75;
-	pub const ITEM_CHANCE_RARE: f32     = 0.5;
+	pub const ITEM_CHANCE_UNCOMMON: f32 = 0.7;
+	pub const ITEM_CHANCE_RARE: f32     = 0.4;
 	pub const ITEM_CHANCE_DISABLED: f32 = 0.0;
-	pub fn get_item_rarity(item: Item) -> f32 {
+	pub const fn get_item_rarity(item: Item) -> f32 {
 		match item {
 			Item::Cigarettes      => ITEM_CHANCE_UNCOMMON,
 			Item::ExpiredMedicine => ITEM_CHANCE_COMMON  ,
@@ -393,7 +391,7 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 				Item::ExpiredMedicine if house.lives > 1 && house.lives + 2 <= settings::lives_for_stage(stage_num) => {
 					println_log!("House uses Expired Medicine.");
 					utils::wait();
-					let gives_lives = rand::thread_rng().gen::<f32>() < 0.4;
+					let gives_lives = rand::thread_rng().r#gen::<f32>() < 0.4;
 					if gives_lives {
 						println_log!("+2 lives.");
 						house.lives += 2;
@@ -498,7 +496,7 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 					true
 				} else {
 					let live_percent = lives_count as f32 / game_data.buckshot.len() as f32;
-					rand::thread_rng().gen::<f32>() < live_percent
+					rand::thread_rng().r#gen::<f32>() < live_percent
 				};
 			
 			
@@ -693,9 +691,9 @@ pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
 			println!();
 			print_stats(game_data);
 			println!();
-			let mut options = vec!(InputOption::new("1", "shoot", vec!("s"), ()));
-			if !game_data.get_player().items.is_empty() {options.push(InputOption::new("2", "use item", vec!("u"), ()));}
-			if can_trade {options.push(InputOption::new("3", "trade", vec!("t"), ()));}
+			let mut options = vec!(InputOption::new("1", &["shoot", "s"], ()));
+			if !game_data.get_player().items.is_empty() {options.push(InputOption::new("2", &["use item", "u"], ()));}
+			if can_trade {options.push(InputOption::new("3", &["trade", "t"], ()));}
 			let chosen_option = read!(options).0;
 			log!("Doing: {chosen_option}");
 			match chosen_option {
@@ -772,10 +770,10 @@ pub fn shoot(game_data: &mut GameData, stage_num: usize) -> ShotEndsTurn {
 		game_data.players.iter().enumerate()
 		.filter_map(|(i, player)| {
 			if player.lives == 0 {return None;}
-			Some(InputOption {bulletin_string: None, main_name: format!("{} ({})", player.name, player.lives), alt_names: vec!(), data: i})
+			Some(InputOption {bulletin_string: None, names: vec!(format!("{} ({})", player.name, player.lives), player.name.clone()), extra_data: i})
 		})
 		.collect::<Vec<_>>();
-	let InputOption {data: to_shoot_index, ..} = prompt!("Who do you want to shoot?"; player_names).1;
+	let InputOption {extra_data: to_shoot_index, ..} = prompt!("Who do you want to shoot?"; player_names).1;
 	let to_shoot = &*game_data.players[*to_shoot_index].name;
 	let confirm = prompt!(format!("Are you sure you want to shoot {to_shoot}? "); YesNoInput);
 	if !confirm {return false;}
@@ -835,7 +833,7 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 		game_data.get_player().items.iter().enumerate()
 		.map(|(i, item)| item.to_input_option(i))
 		.collect::<Vec<_>>();
-	let (to_use_index, InputOption {data: to_use, ..}) = read!(items);
+	let (to_use_index, InputOption {extra_data: to_use, ..}) = read!(items);
 	let mut popped_last_shell = false;
 	match to_use {
 		
@@ -860,7 +858,7 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 			if !confirm {return false;}
 			println_log!("You used Expired Medicine.");
 			utils::wait();
-			let gives_lives = rand::thread_rng().gen::<f32>() < 0.4;
+			let gives_lives = rand::thread_rng().r#gen::<f32>() < 0.4;
 			if gives_lives {
 				let new_lives = 2.min(max_lives - player.lives);
 				println_log!("+{new_lives} {}.", utils::pluralize(new_lives as f32, "life", "lives"));
@@ -932,7 +930,7 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 					if player.lives == 0 {return None;}
 					if &player.name == curr_player_name {return None;}
 					if player.handcuffed_level != HandcuffedLevel::Uncuffed {return None;}
-					Some(InputOption {bulletin_string: None, main_name: player.name.to_string(), alt_names: vec!(), data: i})
+					Some(InputOption {bulletin_string: None, names: vec!(player.name.to_string()), extra_data: i})
 				})
 				.collect::<Vec<_>>();
 			if player_names.is_empty() {
@@ -940,7 +938,8 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 				utils::wait_and_clear();
 				return false;
 			}
-			let InputOption {main_name: to_handcuff, data: to_handcuff_index, ..} = prompt!("Who do you want to handcuff? "; player_names).1;
+			let InputOption {names: to_handcuff, extra_data: to_handcuff_index, ..} = prompt!("Who do you want to handcuff? "; player_names).1;
+			let to_handcuff = &to_handcuff[0];
 			let confirm = prompt!(format!("Are you sure you want to handcuff {to_handcuff}? "); YesNoInput);
 			if !confirm {return false;}
 			let to_handcuff_player = &mut game_data.players[*to_handcuff_index];
@@ -1016,10 +1015,11 @@ pub fn trade(game_data: &mut GameData, can_trade: &mut bool) {
 		.filter_map(|(i, player)| {
 			if player.lives == 0 {return None;}
 			if &player.name == curr_player_name {return None;}
-			Some(InputOption {bulletin_string: None, main_name: player.name.to_string(), alt_names: vec!(), data: i})
+			Some(InputOption {bulletin_string: None, names: vec!(player.name.to_string()), extra_data: i})
 		})
 		.collect::<Vec<_>>();
-	let InputOption {main_name: other_player_name, data: other_player, ..} = prompt!("Who do you want to trade with? "; player_names).1;
+	let InputOption {names: other_player_name, extra_data: other_player, ..} = prompt!("Who do you want to trade with? "; player_names).1;
+	let other_player_name = &other_player_name[0];
 	log!("Started trade with {other_player_name}");
 	let mut curr_trading_items = vec![false; game_data.get_player().items.len()];
 	let mut other_trading_items = vec![false; game_data.players[*other_player].items.len()];

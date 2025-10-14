@@ -114,21 +114,21 @@ impl Item {
 		unreachable!()
 	}
 	pub fn to_input_option(&self, i: usize) -> InputOption<&Self> {
-		let alt_names = match self {
-			Self::Cigarettes => vec!("c", "cig"),
-			Self::ExpiredMedicine => vec!("e", "exp"),
-			Self::MagnifyingGlass => vec!("m", "magn"),
-			Self::Beer => vec!("ber"),
-			Self::BarrelExtension => vec!("bar"),
-			Self::Magazine => vec!("maga"),
-			Self::Handcuffs => vec!("h", "hand"),
-			Self::UnknownTicket => vec!("u", "unk"),
-			Self::LiveShell => vec!("l", "liv"),
-			Self::BlankShell => vec!("bla"),
-			Self::GoldShell => vec!("g", "gol"),
-			Self::Inverter => vec!("i", "inv"),
+		let names: &[String] = match self {
+			Self::Cigarettes => &[self.to_string(), "c".to_string(), "cig".to_string()],
+			Self::ExpiredMedicine => &[self.to_string(), "e".to_string(), "exp".to_string()],
+			Self::MagnifyingGlass => &[self.to_string(), "m".to_string(), "magn".to_string()],
+			Self::Beer => &[self.to_string(), "ber".to_string()],
+			Self::BarrelExtension => &[self.to_string(), "b".to_string(), "bar".to_string()],
+			Self::Magazine => &[self.to_string(), "maga".to_string()],
+			Self::Handcuffs => &[self.to_string(), "h".to_string(), "hand".to_string()],
+			Self::UnknownTicket => &[self.to_string(), "u".to_string(), "unk".to_string()],
+			Self::LiveShell => &[self.to_string(), "l".to_string(), "liv".to_string()],
+			Self::BlankShell => &[self.to_string(), "bla".to_string()],
+			Self::GoldShell => &[self.to_string(), "g".to_string(), "gol".to_string()],
+			Self::Inverter => &[self.to_string(), "i".to_string(), "inv".to_string()],
 		};
-		InputOption::new(i.to_string(), self.to_string(), alt_names, self)
+		InputOption::new(i.to_string(), names, self)
 	}
 }
 
