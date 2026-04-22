@@ -1,3 +1,5 @@
+use rand::RngExt;
+
 use crate::prelude::*;
 use std::fmt::{Display, Formatter};
 
@@ -103,7 +105,7 @@ impl Item {
 			ITEMS_LIST.iter().cloned()
 			.map(settings::get_item_rarity)
 			.fold(0., |total, rarity| total + rarity);
-		let chosen = rand::thread_rng().gen_range(0. .. total_rarities);
+		let chosen = rand::rng().random_range(0. .. total_rarities);
 		let mut total = 0.;
 		for item in ITEMS_LIST {
 			total += settings::get_item_rarity(*item);

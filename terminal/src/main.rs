@@ -71,7 +71,7 @@ pub mod prelude {
 use std::{collections::HashMap, fs::{File, OpenOptions}, io::{self, Read, Seek, Write}, result::Result as StdResult, sync::Mutex};
 
 use crate::prelude::*;
-use rand::prelude::SliceRandom;
+use rand::{RngExt, prelude::SliceRandom};
 
 
 
@@ -270,7 +270,7 @@ pub fn play_stage(game_data: &mut GameData, stage_num: usize) {
 		player.lives = lives;
 	}
 	
-	game_data.players.shuffle(&mut rand::thread_rng());
+	game_data.players.shuffle(&mut rand::rng());
 	game_data.curr_player = 0;
 	for player in &mut game_data.players {
 		player.handcuffed_level = HandcuffedLevel::Uncuffed;
@@ -391,7 +391,7 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 				Item::ExpiredMedicine if house.lives > 1 && house.lives + 2 <= settings::lives_for_stage(stage_num) => {
 					println_log!("House uses Expired Medicine.");
 					utils::wait();
-					let gives_lives = rand::thread_rng().r#gen::<f32>() < 0.4;
+					let gives_lives = rand::rng().random::<f32>() < 0.4;
 					if gives_lives {
 						println_log!("+2 lives.");
 						house.lives += 2;
@@ -411,7 +411,7 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 						)
 						.collect::<Vec<_>>();
 					if players_to_handcuff.is_empty() {continue;}
-					let player_to_handcuff_index = rand::thread_rng().gen_range(0..players_to_handcuff.len());
+					let player_to_handcuff_index = rand::rng().random_range(0..players_to_handcuff.len());
 					players_to_handcuff[player_to_handcuff_index].handcuffed_level = HandcuffedLevel::NewlyHandcuffed;
 					println_log!("House handcuffs {}.", players_to_handcuff[player_to_handcuff_index].name);
 				}
@@ -443,13 +443,13 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 		for i in (0..house.items.len()).rev() {
 			match house.items[i] {
 				Item::LiveShell => {
-					let index = rand::thread_rng().gen_range(0..=game_data.buckshot.len());
+					let index = rand::rng().random_range(0..=game_data.buckshot.len());
 					game_data.buckshot.insert(index, true);
 					lives_count += 1;
 					println_log!("House uses a Live Shell.");
 				}
 				Item::BlankShell => {
-					let index = rand::thread_rng().gen_range(0..=game_data.buckshot.len());
+					let index = rand::rng().random_range(0..=game_data.buckshot.len());
 					game_data.buckshot.insert(index, false);
 					blanks_count += 1;
 					println_log!("House uses a Blank Shell.");
@@ -496,7 +496,7 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 					true
 				} else {
 					let live_percent = lives_count as f32 / game_data.buckshot.len() as f32;
-					rand::thread_rng().r#gen::<f32>() < live_percent
+					rand::rng().random::<f32>() < live_percent
 				};
 			
 			
@@ -540,7 +540,7 @@ pub fn play_as_house(game_data: &mut GameData, stage_num: usize) {
 					players_to_shoot.into_iter()
 					.filter(|player| player.lives == highest_lives)
 					.collect::<Vec<_>>();
-				let player_to_shoot = players_to_shoot.remove(rand::thread_rng().gen_range(0..players_to_shoot.len()));
+				let player_to_shoot = players_to_shoot.remove(rand::rng().random_range(0..players_to_shoot.len()));
 				
 				// shoot
 				println_log!("House points the buckshot at {}.", player_to_shoot.name);
@@ -741,11 +741,11 @@ pub fn play_turn(game_data: &mut GameData, stage_num: usize) {
 pub fn reload_buckshot_if_needed(game_data: &mut GameData, stage_num: usize) {
 	let buckshot = &mut game_data.buckshot;
 	if !buckshot.is_empty() {return;}
-	let mut rng = rand::thread_rng();
+	let mut rng = rand::rng();
 	
 	let (min_bullets, max_bullets, min_percent, max_percent) = settings::buckshot_reload_data(stage_num);
-	let bullet_count = rng.gen_range(min_bullets ..= max_bullets);
-	let live_percent = rng.gen_range(min_percent ..= max_percent);
+	let bullet_count = rng.random_range(min_bullets ..= max_bullets);
+	let live_percent = rng.random_range(min_percent ..= max_percent);
 	let live_count = (bullet_count as f32 * live_percent).round() as usize;
 	let blank_count = bullet_count - live_count;
 	*buckshot = Vec::with_capacity(bullet_count);
@@ -858,7 +858,7 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 			if !confirm {return false;}
 			println_log!("You used Expired Medicine.");
 			utils::wait();
-			let gives_lives = rand::thread_rng().r#gen::<f32>() < 0.4;
+			let gives_lives = rand::rng().random::<f32>() < 0.4;
 			if gives_lives {
 				let new_lives = 2.min(max_lives - player.lives);
 				println_log!("+{new_lives} {}.", utils::pluralize(new_lives as f32, "life", "lives"));
@@ -962,7 +962,7 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 		Item::LiveShell => {
 			let confirm = prompt!("Are you sure you want to this item? "; YesNoInput);
 			if !confirm {return false;}
-			let index = rand::thread_rng().gen_range(0..=game_data.buckshot.len());
+			let index = rand::rng().random_range(0..=game_data.buckshot.len());
 			game_data.buckshot.insert(index, true);
 			println!("You used added the shell.");
 			log!("Added live shell. New buckshot contents: {:?}", &game_data.buckshot);
@@ -972,7 +972,7 @@ pub fn use_item(game_data: &mut GameData, stage_num: usize) -> ItemEndedTurn {
 		Item::BlankShell => {
 			let confirm = prompt!("Are you sure you want to this item? "; YesNoInput);
 			if !confirm {return false;}
-			let index = rand::thread_rng().gen_range(0..=game_data.buckshot.len());
+			let index = rand::rng().random_range(0..=game_data.buckshot.len());
 			game_data.buckshot.insert(index, false);
 			println!("You used added the shell.");
 			log!("Added blank shell. New buckshot contents: {:?}", &game_data.buckshot);
